@@ -1,0 +1,82 @@
+dimensions:
+  - id: "fiscal_year"
+    name: "Fiscal Year"
+    description: "Fiscal year for the metric value"
+    type: "time"
+    values: null
+
+  - id: "calendar_year"
+    name: "Calendar Year"
+    description: "Calendar year for the metric value"
+    type: "time"
+    values: null
+
+  - id: "quarter"
+    name: "Quarter"
+    description: "Fiscal or calendar quarter"
+    type: "time"
+    values:
+      - "Q1"
+      - "Q2"
+      - "Q3"
+      - "Q4"
+
+  - id: "state"
+    name: "State"
+    description: "US state or province"
+    type: "geography"
+    values: null
+
+  - id: "region"
+    name: "Region"
+    description: "Geographic region"
+    type: "geography"
+    values:
+      - "Northeast"
+      - "Southeast"
+      - "Midwest"
+      - "West"
+      - "Southwest"
+
+  - id: "institution_type"
+    name: "Institution Type"
+    description: "Type of educational institution"
+    type: "categorical"
+    values:
+      - "public"
+      - "private"
+      - "for-profit"
+
+  - id: "peer_group"
+    name: "Peer Group"
+    description: "Institutional peer group classification"
+    type: "categorical"
+    values:
+      - "Research University"
+      - "Liberal Arts College"
+      - "Community College"
+      - "Regional University"
+
+  - id: "document_type"
+    name: "Document Type"
+    description: "Type of source document"
+    type: "categorical"
+    values:
+      - "pdf"
+      - "excel"
+      - "ppt"
+      - "word"
+      - "csv"
+      - "txt"
+
+  - id: "domain"
+    name: "Domain"
+    description: "Metric domain category"
+    type: "categorical"
+    values:
+      - "students"
+      - "faculty"
+      - "research"
+      - "administrative_staff"
+      - "operations"
+      - "finance"

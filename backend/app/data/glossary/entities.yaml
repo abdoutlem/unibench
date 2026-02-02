@@ -1,0 +1,30 @@
+entities:
+  - id: "institution"
+    name: "Institution"
+    description: "Educational institution (university, college)"
+    attributes:
+      id: "Unique identifier"
+      name: "Institution name"
+      type: "Institution type (public, private, for-profit)"
+      region: "Geographic region"
+      state: "State or province"
+
+  - id: "document"
+    name: "Document"
+    description: "Source document containing extracted data"
+    attributes:
+      id: "Unique identifier"
+      filename: "Original filename"
+      type: "Document type (pdf, excel, ppt, etc.)"
+      institution_id: "Associated institution"
+      fiscal_year: "Fiscal year of document"
+      uploaded_at: "Upload timestamp"
+
+  - id: "extraction_job"
+    name: "Extraction Job"
+    description: "Job that performed data extraction"
+    attributes:
+      id: "Unique identifier"
+      status: "Job status"
+      created_at: "Creation timestamp"
+      document_ids: "List of processed documents"

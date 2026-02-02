@@ -1,0 +1,183 @@
+"""Glossary API endpoints."""
+
+import logging
+from typing import Optional, List
+from fastapi import APIRouter, HTTPException, Query, Body
+from app.models.glossary import GlossaryMetric, MetricDomain, GlossaryMatch
+from app.services.glossary_loader import get_glossary_loader
+from app.services.glossary_matcher import GlossaryMatcher
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+glossary_loader = get_glossary_loader()
+glossary_matcher = GlossaryMatcher(glossary_loader)
+
+
+@router.get("/metrics", response_model=List[GlossaryMetric])
+async def list_metrics(
+    domain: Optional[MetricDomain] = Query(None, description="Filter by domain"),
+    search: Optional[str] = Query(None, description="Search in names and descriptions")
+):
+    """List all glossary metrics, optionally filtered by domain or search query."""
+    try:
+        glossary_loader.load_all()
+        
+        if search:
+            metrics = glossary_loader.search_metrics(search, domain)
+        elif domain:
+            metrics = glossary_loader.get_metrics_by_domain(domain)
+        else:
+            metrics = glossary_loader.get_all_metrics()
+        
+        return metrics
+    except Exception as e:
+        logger.error(f"Error listing metrics: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/metrics/{metric_id}", response_model=GlossaryMetric)
+async def get_metric(metric_id: str):
+    """Get a specific metric definition by ID."""
+    try:
+        glossary_loader.load_all()
+        metric = glossary_loader.get_metric(metric_id)
+        if not metric:
+            raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
+        return metric
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting metric {metric_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/metrics/domain/{domain}", response_model=List[GlossaryMetric])
+async def get_metrics_by_domain(domain: MetricDomain):
+    """Get all metrics for a specific domain."""
+    try:
+        glossary_loader.load_all()
+        metrics = glossary_loader.get_metrics_by_domain(domain)
+        return metrics
+    except Exception as e:
+        logger.error(f"Error getting metrics for domain {domain}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/match", response_model=List[GlossaryMatch])
+async def match_text(
+    text: str = Query(..., description="Text to match against glossary"),
+    domain: Optional[MetricDomain] = Query(None, description="Limit search to specific domain"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum number of matches to return")
+):
+    """Match text to glossary entries and return potential metric matches."""
+    try:
+        glossary_loader.load_all()
+        matches = glossary_matcher.match_text(text, domain=domain, limit=limit)
+        return matches
+    except Exception as e:
+        logger.error(f"Error matching text: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/variations/{metric_id}", response_model=List[str])
+async def get_variations(metric_id: str):
+    """Get semantic variations for a specific metric."""
+    try:
+        glossary_loader.load_all()
+        metric = glossary_loader.get_metric(metric_id)
+        if not metric:
+            raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
+        return metric.semantic_variations
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting variations for {metric_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/metrics", response_model=GlossaryMetric)
+async def create_metric(metric: GlossaryMetric = Body(...)):
+    """Create or update a metric in the glossary."""
+    try:
+        glossary_loader.load_all()
+        
+        # Save metric to YAML file
+        success = glossary_loader.save_metric(metric)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to save metric to glossary")
+        
+        # Reload glossary to include new metric
+        glossary_loader.reload()
+        glossary_matcher.reload()
+        
+        logger.info(f"Metric created/updated: {metric.id} ({metric.canonical_name})")
+        
+        return metric
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating metric: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/metrics/{metric_id}", response_model=GlossaryMetric)
+async def update_metric(metric_id: str, metric: GlossaryMetric = Body(...)):
+    """Update an existing metric."""
+    try:
+        if metric_id != metric.id:
+            raise HTTPException(status_code=400, detail="Metric ID in path must match metric ID in body")
+        
+        glossary_loader.load_all()
+        
+        # Check if metric exists
+        existing = glossary_loader.get_metric(metric_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
+        
+        # Save updated metric to YAML file
+        success = glossary_loader.save_metric(metric)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update metric in glossary")
+        
+        # Reload glossary
+        glossary_loader.reload()
+        glossary_matcher.reload()
+        
+        logger.info(f"Metric updated: {metric_id} ({metric.canonical_name})")
+        
+        return metric
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating metric: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/metrics/{metric_id}")
+async def delete_metric(metric_id: str):
+    """Delete a metric from the glossary (marks as inactive)."""
+    try:
+        glossary_loader.load_all()
+        metric = glossary_loader.get_metric(metric_id)
+        if not metric:
+            raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
+        
+        # Mark as inactive instead of deleting
+        metric.is_active = False
+        success = glossary_loader.save_metric(metric)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update metric")
+        
+        # Reload glossary
+        glossary_loader.reload()
+        glossary_matcher.reload()
+        
+        logger.info(f"Metric deactivated: {metric_id}")
+        
+        return {"status": "deleted", "metric_id": metric_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting metric: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

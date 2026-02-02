@@ -1,0 +1,23 @@
+{
+  "facts": [
+    {
+      "id": "fact-7d4e77ddfb9f",
+      "entity_id": "file-528ec166",
+      "metric_id": "metric-total-revenue",
+      "domain": "finance",
+      "dimension_values": {
+        "fiscal_year": 2024,
+        "document_type": "pdf"
+      },
+      "value": 1.0,
+      "unit": "currency",
+      "confidence": 0.9348818343654602,
+      "source_document_id": "file-528ec166",
+      "extraction_job_id": "job-09429be9",
+      "extracted_at": "2026-01-28T18:54:30.318891",
+      "validated_at": null,
+      "validation_status": "pending_review",
+      "notes": "Mock AI extraction result"
+    }
+  ]
+}

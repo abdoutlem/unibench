@@ -1,0 +1,347 @@
+metrics:
+- id: metric-total-revenue
+  domain: finance
+  name: Total Operating Revenue
+  canonical_name: Total Operating Revenue
+  description: Total revenue from all operating sources including tuition, grants,
+    and auxiliary services
+  calculation_logic: Sum of all operating revenue line items from audited financial
+    statements
+  data_owner: Finance Department
+  source: internal-document
+  update_frequency: annual
+  unit: currency
+  semantic_variations:
+  - Total Revenue
+  - Gross Revenue
+  - Operating Revenue
+  - Total Income
+  - Operating Income
+  - Total Operating Income
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+      max: 100000000000
+    error_message: Revenue must be positive and reasonable
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  - DocumentType
+  version: '2.0'
+  effective_date: '2023-07-01'
+- id: metric-tuition-revenue
+  domain: finance
+  name: Net Tuition Revenue
+  canonical_name: Net Tuition Revenue
+  description: Tuition and fee revenue after institutional scholarships and discounts
+  calculation_logic: Gross tuition - institutional aid
+  data_owner: Finance Department
+  source: internal-document
+  update_frequency: annual
+  unit: currency
+  semantic_variations:
+  - Net Tuition
+  - Tuition Revenue
+  - Net Tuition and Fees
+  - Tuition Income
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Tuition revenue must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-endowment
+  domain: finance
+  name: Endowment Market Value
+  canonical_name: Endowment Market Value
+  description: Total market value of endowment assets at fiscal year end
+  calculation_logic: Fair market value of all endowment funds
+  data_owner: Finance Department
+  source: internal-document
+  update_frequency: annual
+  unit: currency
+  semantic_variations:
+  - Endowment
+  - Endowment Value
+  - Total Endowment
+  - Endowment Assets
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Endowment must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-total-enrollment
+  domain: students
+  name: Total Fall Enrollment
+  canonical_name: Total Fall Enrollment
+  description: Total headcount enrollment in fall semester
+  calculation_logic: IPEDS fall enrollment headcount
+  data_owner: Registrar's Office
+  source: ipeds
+  update_frequency: annual
+  unit: count
+  semantic_variations:
+  - Total Enrollment
+  - Fall Enrollment
+  - Enrollment
+  - Student Enrollment
+  - Total Students
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Enrollment must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-undergrad-enrollment
+  domain: students
+  name: Undergraduate Enrollment
+  canonical_name: Undergraduate Enrollment
+  description: Total undergraduate headcount enrollment
+  calculation_logic: IPEDS undergraduate headcount
+  data_owner: Registrar's Office
+  source: ipeds
+  update_frequency: annual
+  unit: count
+  semantic_variations:
+  - Undergraduate Students
+  - UG Enrollment
+  - Undergrad Enrollment
+  - Undergraduate Headcount
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Undergraduate enrollment must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-retention-rate
+  domain: students
+  name: First-Year Retention Rate
+  canonical_name: First-Year Retention Rate
+  description: Percentage of first-time, full-time freshmen returning for second year
+  calculation_logic: (Returning sophomores / First-year cohort) * 100
+  data_owner: Institutional Research
+  source: ipeds
+  update_frequency: annual
+  unit: percentage
+  semantic_variations:
+  - Retention Rate
+  - Freshman Retention
+  - First Year Retention
+  - Student Retention
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+      max: 100
+    error_message: Retention rate must be between 0 and 100
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-6yr-grad-rate
+  domain: students
+  name: Six-Year Graduation Rate
+  canonical_name: Six-Year Graduation Rate
+  description: Percentage of first-time, full-time freshmen graduating within 6 years
+  calculation_logic: IPEDS 150% completion rate
+  data_owner: Institutional Research
+  source: ipeds
+  update_frequency: annual
+  unit: percentage
+  semantic_variations:
+  - 6-Year Graduation Rate
+  - Six Year Graduation
+  - Graduation Rate
+  - 6 Year Completion Rate
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+      max: 100
+    error_message: Graduation rate must be between 0 and 100
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-faculty-count
+  domain: faculty
+  name: Full-Time Faculty
+  canonical_name: Full-Time Faculty Count
+  description: Total full-time instructional faculty
+  calculation_logic: IPEDS full-time instructional staff
+  data_owner: Human Resources
+  source: ipeds
+  update_frequency: annual
+  unit: count
+  semantic_variations:
+  - FT Faculty
+  - Full Time Faculty
+  - Faculty Count
+  - Full-Time Instructional Faculty
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Faculty count must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-student-faculty-ratio
+  domain: faculty
+  name: Student-to-Faculty Ratio
+  canonical_name: Student-to-Faculty Ratio
+  description: Ratio of FTE students to FTE instructional faculty
+  calculation_logic: FTE students / FTE faculty
+  data_owner: Institutional Research
+  source: common-data-set
+  update_frequency: annual
+  unit: ratio
+  semantic_variations:
+  - S:F Ratio
+  - Student Faculty Ratio
+  - Student to Faculty Ratio
+  - Faculty Student Ratio
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+      max: 50
+    error_message: Ratio must be between 0 and 50
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-research-expenditure
+  domain: research
+  name: Research Expenditures
+  canonical_name: Research Expenditures
+  description: Total research and development expenditures
+  calculation_logic: HERD survey total R&D expenditures
+  data_owner: Research Office
+  source: ipeds
+  update_frequency: annual
+  unit: currency
+  semantic_variations:
+  - Research $
+  - R&D Expenditures
+  - Research Spending
+  - Research and Development Expenditures
+  - Research Costs
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Research expenditures must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2020-07-01'
+- id: metric-admin-staff-count
+  domain: administrative_staff
+  name: Administrative Staff Count
+  canonical_name: Administrative Staff Count
+  description: Total number of administrative staff
+  calculation_logic: IPEDS administrative staff headcount
+  data_owner: Human Resources
+  source: internal-document
+  update_frequency: annual
+  unit: count
+  semantic_variations:
+  - Admin Staff
+  - Administrative Staff
+  - Administrative Employees
+  - Admin Employees
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Administrative staff count must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2022-07-01'
+- id: metric-deferred-maintenance
+  domain: operations
+  name: Deferred Maintenance Backlog
+  canonical_name: Deferred Maintenance Backlog
+  description: Estimated cost to address all deferred maintenance needs
+  calculation_logic: Facilities condition assessment total
+  data_owner: Facilities Department
+  source: internal-document
+  update_frequency: annual
+  unit: currency
+  semantic_variations:
+  - Def. Maint.
+  - Deferred Maintenance
+  - Maintenance Backlog
+  - Facilities Backlog
+  validation_rules:
+  - type: range
+    params:
+      min: 0
+    error_message: Deferred maintenance must be positive
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  version: '1.0'
+  effective_date: '2022-07-01'
+- id: metric-uk-pop
+  domain: students
+  name: percentage of uk student
+  canonical_name: u
+  description: it feches the percentage of uk students depending on the country of
+    the university
+  calculation_logic: it fetch simply without calculations
+  data_owner: ''
+  source: internal-document
+  update_frequency: annual
+  unit: percentage
+  semantic_variations: []
+  validation_rules: []
+  entities:
+  - Institution
+  dimensions:
+  - FiscalYear
+  - DocumentType
+  version: '1.0'
+  effective_date: '2026-01-28'
+  created_at: '2026-01-28T18:02:14.219483'
+  updated_at: '2026-01-28T18:02:14.236301'
+  is_active: true
