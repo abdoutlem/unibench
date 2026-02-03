@@ -59,3 +59,76 @@ export function buildSeriesData(data: ExploreResponse): {
 
   return { chartData, seriesKeys, xKey };
 }
+
+// --- Multidimensional decomposition ---
+
+export interface DecomposeResultSingle {
+  mode: "single";
+}
+
+export interface FacetData {
+  label: string;
+  data: ExploreResponse;
+}
+
+export interface DecomposeResultGrid {
+  mode: "grid";
+  facetColumn: string;
+  facets: FacetData[];
+  gridCols: number;
+}
+
+export type DecomposeResult = DecomposeResultSingle | DecomposeResultGrid;
+
+const MAX_FACETS = 12;
+
+/**
+ * Decides whether to render a single chart or a faceted grid.
+ *
+ * - 0-2 string columns (excl. unit, metric_id): single chart (existing behaviour).
+ * - 3+ string columns: split rows by unique values of the 3rd string column,
+ *   producing one sub-chart per value (capped at MAX_FACETS).
+ */
+export function decomposeData(data: ExploreResponse): DecomposeResult {
+  const stringCols = data.columns.filter(
+    (c) => c.type === "string" && c.name !== "unit" && c.name !== "metric_id",
+  );
+
+  if (stringCols.length < 3) {
+    return { mode: "single" };
+  }
+
+  const facetCol = stringCols[2].name;
+
+  // Collect unique facet values (preserve insertion order, cap at MAX_FACETS)
+  const seen = new Set<string>();
+  for (const row of data.rows) {
+    const v = String(row[facetCol] ?? "");
+    seen.add(v);
+    if (seen.size >= MAX_FACETS) break;
+  }
+
+  const facetValues = Array.from(seen);
+
+  // Build columns without the facet column
+  const subColumns = data.columns.filter((c) => c.name !== facetCol);
+
+  const facets: FacetData[] = facetValues.map((val) => ({
+    label: val,
+    data: {
+      columns: subColumns,
+      rows: data.rows.filter((r) => String(r[facetCol] ?? "") === val),
+      total_rows: 0, // will be set below
+      metadata: data.metadata,
+    },
+  }));
+
+  // Set total_rows for each facet
+  facets.forEach((f) => {
+    f.data.total_rows = f.data.rows.length;
+  });
+
+  const gridCols = facetValues.length <= 4 ? 2 : 3;
+
+  return { mode: "grid", facetColumn: facetCol, facets, gridCols };
+}

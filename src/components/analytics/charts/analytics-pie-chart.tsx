@@ -1,10 +1,13 @@
 "use client";
 
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from "recharts";
 import type { ExploreResponse, ChartConfig, ChartType } from "@/types/analytics";
 import { getColor } from "./chart-colors";
+import { ChartTooltip } from "./chart-tooltip";
+import { ChartLegend } from "./chart-legend";
+import type { LegendItem } from "./chart-legend";
 
 interface Props {
   data: ExploreResponse;
@@ -25,35 +28,37 @@ export function AnalyticsPieChart({ data, config, chartType, height = 380 }: Pro
 
   const innerRadius = chartType === "donut" ? "55%" : 0;
 
+  const legendItems: LegendItem[] = pieData.map((d, i) => ({
+    label: d.name,
+    color: getColor(i),
+    value: d.value,
+  }));
+
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <PieChart>
-        <Pie
-          data={pieData}
-          cx="50%"
-          cy="50%"
-          innerRadius={innerRadius}
-          outerRadius="80%"
-          dataKey="value"
-          nameKey="name"
-          label={config.showDataLabels ? ({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%` : false}
-          labelLine={config.showDataLabels}
-        >
-          {pieData.map((_, i) => (
-            <Cell key={i} fill={getColor(i)} />
-          ))}
-        </Pie>
-        <Tooltip
-          contentStyle={{
-            backgroundColor: "hsl(var(--card))",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: "8px",
-            fontSize: "12px",
-            boxShadow: "0 4px 16px -4px rgba(0,0,0,0.06)",
-          }}
-        />
-        {config.showLegend && <Legend wrapperStyle={{ fontSize: "12px" }} />}
-      </PieChart>
-    </ResponsiveContainer>
+    <div>
+      <ResponsiveContainer width="100%" height={height}>
+        <PieChart>
+          <Pie
+            data={pieData}
+            cx="50%"
+            cy="50%"
+            innerRadius={innerRadius}
+            outerRadius="80%"
+            dataKey="value"
+            nameKey="name"
+            label={config.showDataLabels ? ({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%` : false}
+            labelLine={config.showDataLabels}
+          >
+            {pieData.map((_, i) => (
+              <Cell key={i} fill={getColor(i)} />
+            ))}
+          </Pie>
+          <Tooltip content={<ChartTooltip />} />
+        </PieChart>
+      </ResponsiveContainer>
+      {config.showLegend && (
+        <ChartLegend items={legendItems} />
+      )}
+    </div>
   );
 }

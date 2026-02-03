@@ -5,7 +5,7 @@ import { Save, Table2, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAnalyticsStore } from "@/store/analytics";
 import { QueryBuilder, SaveReportDialog } from "@/components/analytics";
-import { ChartRenderer, ChartContainer } from "@/components/analytics/charts";
+import { ChartRenderer, ChartContainer, ChartGrid } from "@/components/analytics/charts";
 import { AnalyticsTableView } from "@/components/analytics/charts";
 import { ValidationPanel } from "@/components/analytics/validation-panel";
 import { Chatbot } from "@/components/analytics/chatbot";
@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
                 }
               >
                 {viewMode === "chart" ? (
-                  <ChartRenderer
+                  <ChartGrid
                     data={store.result}
                     chartType={store.chartType}
                     chartConfig={store.chartConfig}
