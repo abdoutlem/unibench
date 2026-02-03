@@ -177,6 +177,24 @@ class ApiClient {
     return this.request<any[]>(`/glossary/match?${params}`);
   }
 
+  async getGlossaryDimensions(): Promise<any[]> {
+    return this.request<any[]>("/glossary/dimensions");
+  }
+
+  async getGlossaryDimension(dimensionId: string): Promise<any> {
+    return this.request<any>(`/glossary/dimensions/${dimensionId}`);
+  }
+
+  async updateGlossaryDimension(dimensionId: string, dimension: any): Promise<any> {
+    return this.request<any>(`/glossary/dimensions/${dimensionId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dimension),
+    });
+  }
+
   /**
    * Data query API methods
    */
@@ -387,6 +405,115 @@ class ApiClient {
    */
   async deleteUploadedFile(fileId: string): Promise<{ status: string; file_id: string }> {
     return this.request(`/upload/${fileId}`, {
+      method: "DELETE",
+    });
+  }
+
+  /**
+   * Process URL through n8n
+   */
+  async processUrl(url: string, entityId?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append("url", url);
+    if (entityId) {
+      formData.append("entity_id", entityId);
+    }
+    return this.request<any>("/upload/url", {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  /**
+   * Webhook API methods
+   */
+  async submitN8NWebhook(payload: {
+    data: Array<{
+      raw_metric_name: string;
+      dimensions: Record<string, string>;
+      value: number;
+      aggregation: string;
+    }>;
+    entity_id: string;
+    source_url?: string;
+    observation_date?: string;
+    source_name?: string;
+  }): Promise<any> {
+    return this.request<any>("/webhook/n8n", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMetricMappings(): Promise<any[]> {
+    return this.request<any[]>("/webhook/mappings");
+  }
+
+  async createMetricMapping(mapping: {
+    raw_metric_name: string;
+    metric_id: string;
+    confidence?: number;
+  }): Promise<any> {
+    return this.request<any>("/webhook/mappings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(mapping),
+    });
+  }
+
+  async updateMetricMapping(
+    configId: string,
+    mapping: {
+      metric_id: string;
+      confidence?: number;
+    }
+  ): Promise<any> {
+    return this.request<any>(`/webhook/mappings/${configId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(mapping),
+    });
+  }
+
+  async deleteMetricMapping(configId: string): Promise<{ status: string; config_id: string }> {
+    return this.request(`/webhook/mappings/${configId}`, {
+      method: "DELETE",
+    });
+  }
+
+  /**
+   * Data exploration API methods
+   */
+  async getDiscoveredMetrics(): Promise<any[]> {
+    return this.request<any[]>("/exploration/discovered-metrics");
+  }
+
+  async acceptMetricGroup(group: {
+    group_id: string;
+    canonical_name: string;
+    description: string;
+    unit: string;
+    category: string;
+    domain?: string;
+  }): Promise<any> {
+    return this.request<any>("/exploration/accept-metric-group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(group),
+    });
+  }
+
+  async rejectMetricGroup(groupId: string): Promise<any> {
+    return this.request(`/exploration/reject-metric-group/${groupId}`, {
       method: "DELETE",
     });
   }

@@ -56,6 +56,12 @@ export default function GlossaryPage() {
   const [manageMetrics, setManageMetrics] = useState<GlossaryMetric[]>([]);
   const [editing, setEditing] = useState<GlossaryMetric | null>(null);
   const [variationDraft, setVariationDraft] = useState("");
+  const [dimensionDraft, setDimensionDraft] = useState("");
+  const [availableDimensions, setAvailableDimensions] = useState<Array<{ id: string; name: string; description?: string; type?: string; values?: string[] | null }>>([]);
+  
+  // --- Dimensions management ---
+  const [editingDimension, setEditingDimension] = useState<{ id: string; name: string; description: string; type: string; values: string[] | null } | null>(null);
+  const [dimensionValueDraft, setDimensionValueDraft] = useState("");
 
   const domainOptions = useMemo(
     () => [
@@ -114,9 +120,29 @@ export default function GlossaryPage() {
     }
   };
 
+  const loadDimensions = async () => {
+    try {
+      const dims = await apiClient.getGlossaryDimensions();
+      setAvailableDimensions(dims.map((d: any) => ({ 
+        id: d.id, 
+        name: d.name,
+        description: d.description || "",
+        type: d.type || "categorical",
+        values: d.values || null
+      })));
+    } catch (e) {
+      console.error("Failed to load dimensions:", e);
+      setManageError(e instanceof Error ? e.message : "Failed to load dimensions");
+    }
+  };
+
   useEffect(() => {
-    if (activeTab !== "manage") return;
-    loadManageMetrics();
+    if (activeTab === "manage") {
+      loadManageMetrics();
+      loadDimensions();
+    } else if (activeTab === "dimensions") {
+      loadDimensions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, manageDomain]);
 
@@ -137,11 +163,13 @@ export default function GlossaryPage() {
   const startCreate = () => {
     setEditing({ ...newMetricTemplate });
     setVariationDraft("");
+    setDimensionDraft("");
   };
 
   const startEdit = (metric: GlossaryMetric) => {
     setEditing({ ...metric });
     setVariationDraft("");
+    setDimensionDraft("");
   };
 
   const addVariation = () => {
@@ -164,6 +192,29 @@ export default function GlossaryPage() {
     setEditing({
       ...editing,
       semantic_variations: (editing.semantic_variations || []).filter((x) => x !== v),
+    });
+  };
+
+  const addDimension = () => {
+    if (!editing) return;
+    const d = dimensionDraft.trim();
+    if (!d) return;
+    if ((editing.dimensions || []).some((x) => x.toLowerCase() === d.toLowerCase())) {
+      setDimensionDraft("");
+      return;
+    }
+    setEditing({
+      ...editing,
+      dimensions: [...(editing.dimensions || []), d],
+    });
+    setDimensionDraft("");
+  };
+
+  const removeDimension = (d: string) => {
+    if (!editing) return;
+    setEditing({
+      ...editing,
+      dimensions: (editing.dimensions || []).filter((x) => x !== d),
     });
   };
 
@@ -249,6 +300,7 @@ export default function GlossaryPage() {
         <TabsList>
           <TabsTrigger value="metrics">Metrics</TabsTrigger>
           <TabsTrigger value="manage">Manage</TabsTrigger>
+          <TabsTrigger value="dimensions">Dimensions</TabsTrigger>
           <TabsTrigger value="peer-groups">Peer Groups</TabsTrigger>
           <TabsTrigger value="data-sources">Data Sources</TabsTrigger>
         </TabsList>
@@ -375,6 +427,14 @@ export default function GlossaryPage() {
                             </h4>
                             <span className="text-sm">{metric.effectiveDate}</span>
                           </div>
+                          <div className="md:col-span-2">
+                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                              Dimensions
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              Dimensions are managed in the Manage tab. Each metric can have dimensions like FiscalYear, DocumentType, etc.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -463,7 +523,7 @@ export default function GlossaryPage() {
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="font-medium truncate">{m.name}</div>
                           <div className="text-xs text-muted-foreground truncate">{m.id}</div>
                           <div className="mt-2 flex flex-wrap gap-2">
@@ -476,6 +536,20 @@ export default function GlossaryPage() {
                               </Badge>
                             )}
                           </div>
+                          {(m.dimensions || []).length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {(m.dimensions || []).slice(0, 3).map((d) => (
+                                <Badge key={d} variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900">
+                                  {d}
+                                </Badge>
+                              ))}
+                              {(m.dimensions || []).length > 3 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{(m.dimensions || []).length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground shrink-0">
                           {m.unit}
@@ -667,6 +741,72 @@ export default function GlossaryPage() {
                       </div>
                     </div>
 
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">Dimensions</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={dimensionDraft}
+                          onChange={(e) => setDimensionDraft(e.target.value)}
+                          placeholder="Add a dimension (e.g., FiscalYear, DocumentType)"
+                          list="dimensions-list"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addDimension();
+                            }
+                          }}
+                        />
+                        <datalist id="dimensions-list">
+                          {availableDimensions.map((d) => (
+                            <option key={d.id} value={d.name} />
+                          ))}
+                        </datalist>
+                        <Button type="button" variant="outline" onClick={addDimension}>
+                          Add
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(editing.dimensions || []).length === 0 ? (
+                          <span className="text-sm text-muted-foreground">No dimensions yet.</span>
+                        ) : (
+                          (editing.dimensions || []).map((dimName) => {
+                            const dimDef = availableDimensions.find(
+                              (d) => d.name === dimName || d.id === dimName.toLowerCase().replace(/\s+/g, '_')
+                            );
+                            return (
+                              <div
+                                key={dimName}
+                                className="inline-flex flex-col gap-1 rounded-md bg-blue-100 dark:bg-blue-900 px-2 py-1.5 text-xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span>{dimName}</span>
+                                  <button
+                                    type="button"
+                                    className="hover:text-destructive"
+                                    onClick={() => removeDimension(dimName)}
+                                    aria-label={`Remove dimension ${dimName}`}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                {dimDef?.values && dimDef.values.length > 0 && (
+                                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                                    Allowed: {dimDef.values.join(", ")}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      {(editing.dimensions || []).length > 0 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <Info className="h-3 w-3 inline mr-1" />
+                          Authorized values for dimensions are enforced during extraction to prevent hallucination.
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex gap-2 pt-2 border-t">
                       <Button onClick={saveMetric} disabled={manageLoading} className="flex-1">
                         Save
@@ -683,6 +823,224 @@ export default function GlossaryPage() {
                       <Button
                         variant="outline"
                         onClick={() => setEditing(null)}
+                        disabled={manageLoading}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="dimensions" className="space-y-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Manage Dimensions</h2>
+              <p className="text-sm text-muted-foreground">
+                Define dimensions and their authorized values to prevent extraction hallucination.
+              </p>
+            </div>
+            <Button variant="outline" onClick={loadDimensions} disabled={manageLoading}>
+              Refresh
+            </Button>
+          </div>
+
+          {manageError && (
+            <Card className="border-destructive/40">
+              <CardContent className="p-4 text-sm text-destructive">{manageError}</CardContent>
+            </Card>
+          )}
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* List */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>Dimensions</span>
+                  <Badge variant="outline">{availableDimensions.length}</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Click a dimension to edit its authorized values.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {manageLoading && availableDimensions.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Loading…</div>
+                ) : availableDimensions.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No dimensions found.</div>
+                ) : (
+                  availableDimensions.map((dim) => (
+                    <button
+                      key={dim.id}
+                      onClick={() => {
+                        setEditingDimension({
+                          id: dim.id,
+                          name: dim.name,
+                          description: dim.description || "",
+                          type: dim.type || "categorical",
+                          values: dim.values || null,
+                        });
+                        setDimensionValueDraft("");
+                      }}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg border transition-colors",
+                        editingDimension?.id === dim.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{dim.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{dim.id}</div>
+                          {dim.values && dim.values.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {dim.values.slice(0, 3).map((v) => (
+                                <Badge key={v} variant="secondary" className="text-xs">
+                                  {v}
+                                </Badge>
+                              ))}
+                              {dim.values.length > 3 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{dim.values.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-xs text-muted-foreground">No authorized values (free text)</div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Editor */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  {editingDimension ? `Edit: ${editingDimension.name}` : "Select a dimension"}
+                </CardTitle>
+                <CardDescription>
+                  Define authorized values to constrain extraction. Leave empty for free text.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!editingDimension ? (
+                  <div className="text-sm text-muted-foreground">
+                    Choose a dimension on the left to edit its authorized values.
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Dimension Name</label>
+                      <Input value={editingDimension.name} disabled />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Dimension ID</label>
+                      <Input value={editingDimension.id} disabled />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">Authorized Values</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={dimensionValueDraft}
+                          onChange={(e) => setDimensionValueDraft(e.target.value)}
+                          placeholder="Add an authorized value"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (dimensionValueDraft.trim()) {
+                                const newValues = [...(editingDimension.values || []), dimensionValueDraft.trim()];
+                                setEditingDimension({ ...editingDimension, values: newValues });
+                                setDimensionValueDraft("");
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (dimensionValueDraft.trim()) {
+                              const newValues = [...(editingDimension.values || []), dimensionValueDraft.trim()];
+                              setEditingDimension({ ...editingDimension, values: newValues });
+                              setDimensionValueDraft("");
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(editingDimension.values || []).length === 0 ? (
+                          <span className="text-sm text-muted-foreground">No authorized values. This dimension accepts free text.</span>
+                        ) : (
+                          (editingDimension.values || []).map((v) => (
+                            <span
+                              key={v}
+                              className="inline-flex items-center gap-2 rounded-md bg-secondary px-2 py-1 text-xs"
+                            >
+                              {v}
+                              <button
+                                type="button"
+                                className="hover:text-destructive"
+                                onClick={() => {
+                                  const newValues = (editingDimension.values || []).filter((x) => x !== v);
+                                  setEditingDimension({ ...editingDimension, values: newValues.length > 0 ? newValues : null });
+                                }}
+                                aria-label={`Remove value ${v}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <Info className="h-3 w-3 inline mr-1" />
+                        If no values are specified, the dimension accepts any text. Otherwise, extraction will only use these values.
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        onClick={async () => {
+                          if (!editingDimension) return;
+                          try {
+                            setManageLoading(true);
+                            setManageError(null);
+                            const dimToSave = {
+                              ...editingDimension,
+                              values: editingDimension.values && editingDimension.values.length > 0 ? editingDimension.values : null,
+                            };
+                            await apiClient.updateGlossaryDimension(editingDimension.id, dimToSave);
+                            await loadDimensions();
+                            setEditingDimension(null);
+                            setDimensionValueDraft("");
+                          } catch (e) {
+                            setManageError(e instanceof Error ? e.message : "Failed to save dimension");
+                          } finally {
+                            setManageLoading(false);
+                          }
+                        }}
+                        disabled={manageLoading}
+                        className="flex-1"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditingDimension(null);
+                          setDimensionValueDraft("");
+                        }}
                         disabled={manageLoading}
                       >
                         Cancel

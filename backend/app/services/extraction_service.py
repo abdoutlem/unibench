@@ -62,6 +62,88 @@ class ExtractionService:
             # Pass glossary loader to AI extractor
             self.ai_extractor = AIExtractor(self.ai_config, glossary_loader=self.glossary_loader)
 
+    def _validate_dimension_value(
+        self, 
+        glossary_metric, 
+        dimension_name: str, 
+        value: any
+    ) -> Optional[any]:
+        """Validate a dimension value against authorized values.
+        Returns the validated value (normalized if needed) or None if invalid.
+        """
+        if not glossary_metric or not glossary_metric.dimensions:
+            return value  # No dimensions defined, accept any value
+        
+        # Normalize dimension name for matching (handle variations like "FiscalYear" vs "fiscal_year")
+        dimension_name_normalized = dimension_name.lower().replace(" ", "_").replace("-", "_")
+        
+        # Check if this dimension is defined for the metric (case-insensitive matching)
+        metric_dimension_match = False
+        for metric_dim in glossary_metric.dimensions:
+            metric_dim_normalized = str(metric_dim).lower().replace(" ", "_").replace("-", "_")
+            if (dimension_name_normalized == metric_dim_normalized or
+                dimension_name.lower() == str(metric_dim).lower()):
+                metric_dimension_match = True
+                break
+        
+        if not metric_dimension_match:
+            return value  # Dimension not in metric's dimension list, accept it
+        
+        # Find dimension definition
+        dim_def = None
+        for dim in self.glossary_loader.get_all_dimensions():
+            # Match by name or ID (normalized)
+            dim_name_normalized = dim.name.lower().replace(" ", "_").replace("-", "_")
+            dim_id_normalized = dim.id.lower().replace(" ", "_").replace("-", "_")
+            if (dim.name.lower() == dimension_name.lower() or
+                dim_id_normalized == dimension_name_normalized or
+                dim_name_normalized == dimension_name_normalized):
+                dim_def = dim
+                break
+        
+        if not dim_def:
+            # Dimension definition not found, accept value
+            return value
+        
+        # If dimension has authorized values, validate against them
+        if dim_def.values and len(dim_def.values) > 0:
+            # Normalize value for comparison (case-insensitive, trim whitespace)
+            value_str = str(value).strip() if value else ""
+            if not value_str:
+                return None  # Empty value not allowed if authorized values exist
+            
+            authorized_values = [str(v).strip().lower() for v in dim_def.values]
+            value_str_lower = value_str.lower()
+            
+            # Check exact match (case-insensitive)
+            if value_str_lower in authorized_values:
+                # Return the canonical authorized value (preserve original case from definition)
+                matching_value = next(
+                    (v for v in dim_def.values if str(v).strip().lower() == value_str_lower),
+                    value
+                )
+                return matching_value
+            
+            # Try fuzzy matching for common variations
+            # E.g., "Q1" matches "Q1", "q1", "quarter 1", etc.
+            for auth_val in dim_def.values:
+                auth_val_lower = str(auth_val).strip().lower()
+                if auth_val_lower == value_str_lower:
+                    return auth_val
+                # Check if value contains authorized value or vice versa (for partial matches)
+                if auth_val_lower in value_str_lower or value_str_lower in auth_val_lower:
+                    # Prefer the authorized value
+                    return auth_val
+            
+            # Value not in authorized list
+            logger.warning(
+                f"Dimension '{dimension_name}' value '{value}' not in authorized values: {dim_def.values}"
+            )
+            return None  # Invalid value
+        
+        # Dimension has no authorized values (free text), accept it
+        return value
+
     def create_job(
         self,
         document_ids: list[str],
@@ -219,6 +301,31 @@ class ExtractionService:
                         if doc.file_type:
                             dimension_values["document_type"] = doc.file_type
                         
+                        # Validate and normalize dimension values from AI result
+                        validated_dimensions = {}
+                        if ai_res.dimensions:
+                            for key, value in ai_res.dimensions.items():
+                                if key in ["fiscal_year", "document_type"]:
+                                    # These are handled separately
+                                    continue
+                                # Validate dimension value
+                                validated_value = self._validate_dimension_value(
+                                    glossary_metric, key, value
+                                )
+                                if validated_value is not None:
+                                    validated_dimensions[key] = validated_value
+                                elif value is not None:
+                                    # Invalid value - log warning and include with note
+                                    logger.warning(
+                                        f"AI extracted invalid dimension '{key}' value '{value}' for metric {rule.target_metric_id}"
+                                    )
+                                    validated_dimensions[key] = value
+                                    validation_note = f" [WARNING: Dimension '{key}' value '{value}' may not be valid]"
+                                    ai_res.notes = (ai_res.notes or "") + validation_note
+                        
+                        # Merge with base dimension values
+                        final_dimensions = {**dimension_values, **validated_dimensions}
+                        
                         # Create ExtractionResult for each AI result
                         ai_extraction_result = ExtractionResult(
                             id=f"res-{uuid.uuid4().hex[:8]}",
@@ -236,7 +343,7 @@ class ExtractionService:
                             source=ai_res.source,
                             status=ResultStatus.PENDING_REVIEW,
                             notes=ai_res.notes,
-                            dimensions=dimension_values  # Include geography and other dimensions
+                            dimensions=final_dimensions  # Include validated dimensions
                         )
                         
                         # Add to results list
@@ -278,15 +385,31 @@ class ExtractionService:
                             }
                             
                             # Add geography and location from result dimensions if available
+                            # Validate dimension values against authorized values
                             if result.dimensions:
                                 if "geography" in result.dimensions:
                                     dimension_values["geography"] = result.dimensions["geography"]
                                 if "location" in result.dimensions:
                                     dimension_values["location"] = result.dimensions["location"]
-                                # Add any other dimensions
+                                # Add any other dimensions with validation
                                 for key, value in result.dimensions.items():
                                     if key not in ["fiscal_year", "document_type", "geography", "location"]:
-                                        dimension_values[key] = value
+                                        # Validate dimension value if metric has this dimension defined
+                                        validated_value = self._validate_dimension_value(
+                                            glossary_metric, key, value
+                                        )
+                                        if validated_value is not None:
+                                            dimension_values[key] = validated_value
+                                        elif value is not None:
+                                            # Log warning but still include the value (will be flagged for review)
+                                            logger.warning(
+                                                f"Dimension '{key}' value '{value}' not in authorized values for metric {rule.target_metric_id}. Value will be flagged for review."
+                                            )
+                                            dimension_values[key] = value  # Include but flag for review
+                                            # Add note about validation failure
+                                            if not result.notes:
+                                                result.notes = ""
+                                            result.notes += f" [WARNING: Dimension '{key}' value '{value}' may not be valid]"
                             
                             # Create fact metric
                             fact = FactMetric(

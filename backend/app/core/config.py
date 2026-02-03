@@ -45,9 +45,17 @@ class Settings(BaseSettings):
     default_ai_provider: str = "openai"  # Use OpenAI/GPT by default
     default_ai_model: str = "gpt-4-turbo-preview"  # Use GPT-4 Turbo by default
 
-    # Storage (for later phases)
+    # Storage
     upload_dir: str = "./uploads"
     max_upload_size: int = 50 * 1024 * 1024  # 50MB
+    
+    # Database
+    database_url: Optional[str] = None  # If None, uses default SQLite path
+    database_echo: bool = False  # Echo SQL queries
+    
+    # n8n Integration
+    n8n_webhook_url: Optional[str] = None  # n8n webhook URL for sending documents/URLs
+    n8n_timeout: int = 300  # Timeout in seconds for n8n processing (5 minutes default)
 
     class Config:
         env_file = ".env"

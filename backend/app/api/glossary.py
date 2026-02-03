@@ -3,14 +3,24 @@
 import logging
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query, Body
-from app.models.glossary import GlossaryMetric, MetricDomain, GlossaryMatch
+from app.models.glossary import GlossaryMetric, MetricDomain, GlossaryMatch, DimensionDefinition
+from pydantic import BaseModel
 from app.services.glossary_loader import get_glossary_loader
+from app.services.glossary_loader_db import get_glossary_loader_db
 from app.services.glossary_matcher import GlossaryMatcher
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-glossary_loader = get_glossary_loader()
+
+# Use database loader if available, otherwise fall back to YAML
+try:
+    glossary_loader = get_glossary_loader_db()
+    USE_DB_LOADER = True
+except Exception:
+    glossary_loader = get_glossary_loader()
+    USE_DB_LOADER = False
+
 glossary_matcher = GlossaryMatcher(glossary_loader)
 
 
@@ -180,4 +190,64 @@ async def delete_metric(metric_id: str):
         raise
     except Exception as e:
         logger.error(f"Error deleting metric: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dimensions", response_model=List[DimensionDefinition])
+async def list_dimensions():
+    """List all available dimensions."""
+    try:
+        glossary_loader.load_all()
+        dimensions = glossary_loader.get_all_dimensions()
+        return dimensions
+    except Exception as e:
+        logger.error(f"Error listing dimensions: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dimensions/{dimension_id}", response_model=DimensionDefinition)
+async def get_dimension(dimension_id: str):
+    """Get a specific dimension definition by ID."""
+    try:
+        glossary_loader.load_all()
+        dimension = glossary_loader.get_dimension(dimension_id)
+        if not dimension:
+            raise HTTPException(status_code=404, detail=f"Dimension '{dimension_id}' not found")
+        return dimension
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting dimension {dimension_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/dimensions/{dimension_id}", response_model=DimensionDefinition)
+async def update_dimension(dimension_id: str, dimension: DimensionDefinition = Body(...)):
+    """Update an existing dimension definition."""
+    try:
+        if dimension_id != dimension.id:
+            raise HTTPException(status_code=400, detail="Dimension ID in path must match dimension ID in body")
+        
+        glossary_loader.load_all()
+        
+        # Check if dimension exists
+        existing = glossary_loader.get_dimension(dimension_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Dimension '{dimension_id}' not found")
+        
+        # Save updated dimension to YAML file
+        success = glossary_loader.save_dimension(dimension)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update dimension in glossary")
+        
+        # Reload glossary
+        glossary_loader.reload()
+        
+        logger.info(f"Dimension updated: {dimension_id} ({dimension.name})")
+        
+        return dimension
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating dimension: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

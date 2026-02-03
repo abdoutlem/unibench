@@ -258,6 +258,32 @@ class AIExtractor:
             for vr in glossary_metric.validation_rules:
                 validation_section += f"\n- {vr.type}: {vr.error_message}"
         
+        # Build dimension constraints section with authorized values
+        dimension_constraints_section = ""
+        if glossary_metric and glossary_metric.dimensions and self.glossary_loader:
+            dimension_constraints_section = "\n\nDIMENSION CONSTRAINTS (CRITICAL - Use ONLY these authorized values):"
+            for dim_name in glossary_metric.dimensions:
+                # Try to find dimension definition by name or ID
+                dim_def = None
+                # Try matching by name first
+                for dim in self.glossary_loader.get_all_dimensions():
+                    if dim.name == dim_name or dim.id == dim_name.lower().replace(" ", "_"):
+                        dim_def = dim
+                        break
+                
+                if dim_def and dim_def.values:
+                    # Dimension has authorized values - list them
+                    values_list = ", ".join(dim_def.values)
+                    dimension_constraints_section += f"\n- {dim_name}: MUST be one of [{values_list}]"
+                elif dim_def:
+                    # Dimension exists but has no authorized values (free text)
+                    dimension_constraints_section += f"\n- {dim_name}: Free text (no restrictions)"
+                else:
+                    # Dimension not found in definitions
+                    dimension_constraints_section += f"\n- {dim_name}: Free text (definition not found)"
+            
+            dimension_constraints_section += "\n\n⚠️ IMPORTANT: If a dimension has authorized values listed above, you MUST use ONLY those values. Do NOT invent or hallucinate new values. If the document contains a value not in the authorized list, use null or the closest matching authorized value."
+        
         # Format the prompt with all available information
         prompt_text = self.config.extraction_prompt_template.format(
             metric_name=metric_name,
@@ -268,8 +294,8 @@ class AIExtractor:
         )
         
         # Append glossary-specific sections if available
-        if calculation_section or domain_section or validation_section:
-            prompt_text += calculation_section + domain_section + validation_section
+        if calculation_section or domain_section or validation_section or dimension_constraints_section:
+            prompt_text += calculation_section + domain_section + validation_section + dimension_constraints_section
         
         return prompt_text
 

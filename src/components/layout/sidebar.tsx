@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FileStack,
+  Webhook,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,10 +34,10 @@ const navigation = [
     badge: "internal",
   },
   {
-    name: "Documents",
+    name: "Data sources",
     href: "/documents",
     icon: FileStack,
-    description: "Upload & manage",
+    description: "Sources & config",
     badge: "internal",
   },
   {
@@ -56,6 +58,20 @@ const navigation = [
     href: "/glossary",
     icon: BookOpen,
     description: "Definitions",
+  },
+  {
+    name: "Webhook",
+    href: "/webhook",
+    icon: Webhook,
+    description: "n8n Integration",
+    badge: "internal",
+  },
+  {
+    name: "Exploration",
+    href: "/exploration",
+    icon: Sparkles,
+    description: "Discover metrics",
+    badge: "internal",
   },
 ];
 

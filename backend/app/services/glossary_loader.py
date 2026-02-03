@@ -210,6 +210,12 @@ class GlossaryLoader:
             self.load_all()
         return self._dimensions_cache.get(dimension_id)
 
+    def get_all_dimensions(self) -> List[DimensionDefinition]:
+        """Get all dimension definitions."""
+        if not self._loaded:
+            self.load_all()
+        return list(self._dimensions_cache.values())
+
     def search_metrics(self, query: str, domain: Optional[MetricDomain] = None) -> List[GlossaryMetric]:
         """Search metrics by name or description."""
         if not self._loaded:
@@ -319,6 +325,55 @@ class GlossaryLoader:
             return True
         except Exception as e:
             logger.error(f"Error saving metric to glossary: {e}", exc_info=True)
+            return False
+
+    def save_dimension(self, dimension: DimensionDefinition) -> bool:
+        """Save a dimension definition to the YAML file."""
+        try:
+            import yaml
+            from datetime import datetime
+            
+            dimensions_file = self.glossary_dir / "dimensions.yaml"
+            
+            # Load existing dimensions
+            if dimensions_file.exists():
+                with open(dimensions_file, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+            else:
+                data = {"dimensions": []}
+            
+            dimensions_list = data.get("dimensions", [])
+            
+            # Convert dimension to dict
+            dimension_dict = dimension.model_dump(mode="json")
+            # Handle None values properly for YAML
+            if dimension_dict.get("values") is None:
+                dimension_dict["values"] = None
+            
+            # Find and update existing dimension, or add new one
+            found = False
+            for i, existing_dim in enumerate(dimensions_list):
+                if existing_dim.get("id") == dimension.id:
+                    dimensions_list[i] = dimension_dict
+                    found = True
+                    break
+            
+            if not found:
+                dimensions_list.append(dimension_dict)
+            
+            data["dimensions"] = dimensions_list
+            
+            # Save back to file
+            with open(dimensions_file, "w", encoding="utf-8") as f:
+                yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            
+            # Update cache immediately
+            self._dimensions_cache[dimension.id] = dimension
+            
+            logger.info(f"Dimension saved to glossary: {dimension.id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving dimension to glossary: {e}", exc_info=True)
             return False
 
 

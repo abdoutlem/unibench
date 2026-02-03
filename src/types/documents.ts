@@ -60,3 +60,62 @@ export interface BulkUploadSession {
   startedAt: string;
   files: UploadProgress[];
 }
+
+// Data source types
+export type DataSourceType = "document" | "url" | "api" | "webhook";
+
+export type UpdateFrequency = 
+  | "manual"
+  | "hourly"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly";
+
+export type DataSourceStatus = 
+  | "active"
+  | "inactive"
+  | "error"
+  | "pending"
+  | "paused";
+
+export interface DataSource {
+  id: string;
+  name: string;
+  type: DataSourceType;
+  description?: string;
+  status: DataSourceStatus;
+  
+  // Configuration
+  updateFrequency: UpdateFrequency;
+  lastUpdate?: string;
+  nextUpdate?: string;
+  autoExtract: boolean;
+  
+  // Type-specific configuration
+  url?: string; // For URL type
+  documentIds?: string[]; // For document type
+  webhookUrl?: string; // For webhook type
+  apiEndpoint?: string; // For API type
+  
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  
+  // Status information
+  lastSuccess?: string;
+  lastError?: string;
+  errorCount: number;
+  successCount: number;
+  
+  // Extraction configuration
+  extractionRules?: string[];
+  extractionMethod?: "HYBRID" | "RULE_BASED" | "AI";
+  
+  // Additional settings
+  enabled: boolean;
+  tags: string[];
+  notes?: string;
+}

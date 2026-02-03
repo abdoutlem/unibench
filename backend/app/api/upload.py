@@ -3,6 +3,8 @@
 import os
 import uuid
 import logging
+import httpx
+import base64
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -11,6 +13,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.models.webhook import N8NWebhookPayload
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +138,30 @@ async def upload_file(
     
     logger.info(f"File uploaded successfully: {file_id} ({file.filename})")
     
-    return UploadedFileResponse(**file_metadata)
+    # Send to n8n if configured
+    n8n_result = None
+    if settings.n8n_webhook_url:
+        try:
+            n8n_result = await _send_to_n8n(
+                file_path=file_path,
+                filename=file.filename,
+                file_id=file_id,
+                file_type=file_ext
+            )
+            logger.info(f"n8n processing completed for {file_id}")
+        except Exception as e:
+            logger.error(f"Error sending to n8n: {e}", exc_info=True)
+            # Don't fail the upload if n8n fails
+    
+    response = UploadedFileResponse(**file_metadata)
+    if n8n_result:
+        # Add n8n processing result to response
+        response_dict = response.model_dump()
+        response_dict["n8n_processed"] = True
+        response_dict["n8n_result"] = n8n_result
+        return UploadedFileResponse(**response_dict)
+    
+    return response
 
 
 @router.post("/upload/batch", response_model=list[UploadedFileResponse])
@@ -286,3 +312,142 @@ async def get_file_content(file_id: str):
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to read file: {str(e)}")
+
+
+async def _send_to_n8n(
+    file_path: Optional[Path] = None,
+    filename: Optional[str] = None,
+    file_id: Optional[str] = None,
+    file_type: Optional[str] = None,
+    url: Optional[str] = None
+) -> Optional[dict]:
+    """Send document or URL to n8n and process the response."""
+    if not settings.n8n_webhook_url:
+        return None
+    
+    try:
+        # Prepare payload for n8n
+        payload = {}
+        
+        if url:
+            # Send URL to n8n
+            payload = {
+                "url": url,
+                "source_type": "url",
+                "source_name": url
+            }
+        elif file_path and file_path.exists():
+            # Read file and encode as base64
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+            
+            file_base64 = base64.b64encode(file_content).decode('utf-8')
+            
+            payload = {
+                "file_id": file_id,
+                "filename": filename,
+                "file_type": file_type,
+                "file_content": file_base64,
+                "source_type": "file",
+                "source_name": filename
+            }
+        else:
+            logger.warning("No file or URL provided to n8n")
+            return None
+        
+        # Send to n8n webhook
+        logger.info(f"Sending to n8n webhook: {settings.n8n_webhook_url}")
+        async with httpx.AsyncClient(timeout=settings.n8n_timeout) as client:
+            response = await client.post(
+                settings.n8n_webhook_url,
+                json=payload,
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+            
+            # n8n should return the processed data in the response
+            n8n_response = response.json()
+            
+            # Check if n8n returned webhook payload format
+            if "data" in n8n_response and isinstance(n8n_response["data"], list):
+                # Process the webhook payload
+                webhook_payload = N8NWebhookPayload(
+                    data=n8n_response["data"],
+                    entity_id=n8n_response.get("entity_id", "default-entity"),
+                    source_url=url or (f"file://{file_path}" if file_path else None),
+                    source_name=n8n_response.get("source_name") or filename or url,
+                    observation_date=n8n_response.get("observation_date")
+                )
+                
+                # Process the webhook payload (this will save observations)
+                from app.api.webhook import process_n8n_webhook
+                result = await process_n8n_webhook(webhook_payload)
+                
+                return {
+                    "status": "processed",
+                    "observations_processed": result.success_count,
+                    "observations_failed": result.error_count,
+                    "observation_ids": result.observation_ids
+                }
+            else:
+                # n8n returned something else, just log it
+                logger.info(f"n8n returned non-standard response: {n8n_response}")
+                return {
+                    "status": "received",
+                    "response": n8n_response
+                }
+                
+    except httpx.TimeoutException:
+        logger.error(f"n8n webhook timeout after {settings.n8n_timeout}s")
+        return {"status": "timeout", "error": "n8n processing timed out"}
+    except httpx.HTTPStatusError as e:
+        logger.error(f"n8n webhook HTTP error: {e.response.status_code} - {e.response.text}")
+        return {"status": "error", "error": f"HTTP {e.response.status_code}"}
+    except Exception as e:
+        logger.error(f"Error sending to n8n: {e}", exc_info=True)
+        return {"status": "error", "error": str(e)}
+
+
+@router.post("/url", response_model=dict)
+async def process_url(
+    url: str = Form(...),
+    entity_id: Optional[str] = Form(None)
+):
+    """Process a URL through n8n."""
+    if not settings.n8n_webhook_url:
+        raise HTTPException(
+            status_code=503,
+            detail="n8n webhook URL not configured. Please set N8N_WEBHOOK_URL in environment."
+        )
+    
+    try:
+        result = await _send_to_n8n(
+            url=url,
+            file_id=None,
+            filename=None,
+            file_type=None
+        )
+        
+        if result and result.get("status") == "processed":
+            return {
+                "status": "success",
+                "url": url,
+                "observations_processed": result.get("observations_processed", 0),
+                "observations_failed": result.get("observations_failed", 0),
+                "message": f"Processed {result.get('observations_processed', 0)} observations from URL"
+            }
+        elif result:
+            return {
+                "status": result.get("status", "unknown"),
+                "url": url,
+                "result": result
+            }
+        else:
+            return {
+                "status": "error",
+                "url": url,
+                "message": "Failed to process URL through n8n"
+            }
+    except Exception as e:
+        logger.error(f"Error processing URL: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to process URL: {str(e)}")

@@ -12,6 +12,13 @@ from app.models.glossary import MetricDomain
 
 logger = logging.getLogger(__name__)
 
+# Try to use database storage if available, otherwise fall back to file-based
+try:
+    from app.services.data_storage_db import DataStorageDB
+    USE_DB_STORAGE = True
+except ImportError:
+    USE_DB_STORAGE = False
+
 
 class DataStorage:
     """Stores and queries extracted metric facts."""
@@ -311,9 +318,12 @@ class DataStorage:
 _data_storage: Optional[DataStorage] = None
 
 
-def get_data_storage() -> DataStorage:
-    """Get the global data storage instance."""
+def get_data_storage():
+    """Get the global data storage instance (database or file-based)."""
     global _data_storage
     if _data_storage is None:
-        _data_storage = DataStorage()
+        if USE_DB_STORAGE:
+            _data_storage = DataStorageDB()
+        else:
+            _data_storage = DataStorage()
     return _data_storage

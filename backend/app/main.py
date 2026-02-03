@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api import router
+from app.db.database import init_db
 
 # Configure logging
 logging.basicConfig(
@@ -15,6 +16,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+# Reduce SQLAlchemy engine logging verbosity (only show warnings/errors, not every query)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +46,14 @@ app.include_router(router, prefix=settings.api_prefix)
 async def startup_event():
     """Initialize application on startup."""
     logger.info("Starting UniBench Extraction API...")
+    
+    # Initialize database
+    try:
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}", exc_info=True)
+    
     # Create upload directory if it doesn't exist
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
