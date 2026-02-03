@@ -517,6 +517,59 @@ class ApiClient {
       method: "DELETE",
     });
   }
+
+  // ── Analytics ──
+
+  async exploreMetrics(query: any): Promise<any> {
+    return this.request<any>("/analytics/explore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(query),
+    });
+  }
+
+  async getEntities(): Promise<any[]> {
+    return this.request<any[]>("/analytics/entities");
+  }
+
+  async getDimensionValues(dimensionName: string): Promise<string[]> {
+    return this.request<string[]>(
+      `/analytics/dimension-values?dimension_name=${encodeURIComponent(dimensionName)}`
+    );
+  }
+
+  // ── Reports ──
+
+  async saveReport(report: any): Promise<any> {
+    return this.request<any>("/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(report),
+    });
+  }
+
+  async listReports(params?: { search?: string }): Promise<any[]> {
+    const qp = new URLSearchParams();
+    if (params?.search) qp.append("search", params.search);
+    const qs = qp.toString();
+    return this.request<any[]>(`/reports${qs ? `?${qs}` : ""}`);
+  }
+
+  async getReport(reportId: string): Promise<any> {
+    return this.request<any>(`/reports/${reportId}`);
+  }
+
+  async updateReport(reportId: string, updates: any): Promise<any> {
+    return this.request<any>(`/reports/${reportId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteReport(reportId: string): Promise<void> {
+    await this.request(`/reports/${reportId}`, { method: "DELETE" });
+  }
 }
 
 export interface UploadedFile {

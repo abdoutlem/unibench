@@ -222,3 +222,19 @@ class UnmappedObservation(Base):
         Index("idx_unmapped_raw_metric", "raw_metric_name"),
         Index("idx_unmapped_entity_date", "entity_id", "observation_date"),
     )
+
+
+class SavedReport(Base):
+    """Saved analytics reports."""
+    __tablename__ = "saved_reports"
+
+    report_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(Text, nullable=False)
+    description = Column(Text)
+    tags = Column(SQLiteJSON, default=[])
+    query_config = Column(SQLiteJSON, nullable=False)
+    chart_type = Column(Text, nullable=False)
+    chart_config = Column(SQLiteJSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(Text)

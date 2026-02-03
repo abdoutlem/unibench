@@ -14,6 +14,8 @@ import {
   FileStack,
   Webhook,
   Sparkles,
+  TrendingUp,
+  FileBarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,6 +54,18 @@ const navigation = [
     href: "/compare",
     icon: GitCompare,
     description: "Side-by-side",
+  },
+  {
+    name: "Analytics",
+    href: "/analytics",
+    icon: TrendingUp,
+    description: "Data visualization",
+  },
+  {
+    name: "Reports",
+    href: "/reports",
+    icon: FileBarChart2,
+    description: "Saved reports",
   },
   {
     name: "Glossary",
