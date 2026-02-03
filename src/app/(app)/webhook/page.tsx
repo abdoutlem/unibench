@@ -121,15 +121,15 @@ export default function WebhookPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-          <Webhook className="h-5 w-5 text-blue-600" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-internal/10">
+          <Webhook className="h-4.5 w-4.5 text-internal" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">n8n Webhook Integration</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">n8n Webhook Integration</h1>
+          <p className="text-sm text-muted-foreground">
             Configure metric mappings for n8n automation data
           </p>
         </div>
@@ -155,7 +155,7 @@ export default function WebhookPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Raw Metric Name (from n8n)</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Raw Metric Name (from n8n)</label>
               <Input
                 value={rawMetricName}
                 onChange={(e) => setRawMetricName(e.target.value)}
@@ -164,7 +164,7 @@ export default function WebhookPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Canonical Metric</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Canonical Metric</label>
               <Select
                 value={selectedMetricId}
                 onValueChange={setSelectedMetricId}
@@ -259,14 +259,14 @@ export default function WebhookPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Endpoint URL</label>
-            <div className="mt-1 p-3 bg-muted rounded-md font-mono text-sm">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endpoint URL</label>
+            <div className="mt-1.5 p-3 bg-muted/60 border border-border/60 rounded-md font-mono text-sm">
               POST {typeof window !== "undefined" ? window.location.origin : ""}/api/v1/webhook/n8n
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium">Payload Format</label>
-            <pre className="mt-1 p-3 bg-muted rounded-md text-xs overflow-x-auto">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payload Format</label>
+            <pre className="mt-1.5 p-3 bg-muted/60 border border-border/60 rounded-md text-xs overflow-x-auto">
 {`{
   "data": [
     {
@@ -284,10 +284,10 @@ export default function WebhookPage() {
 }`}
             </pre>
           </div>
-          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-            <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 border border-border/60 rounded-md">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div className="text-sm">
-              <div className="font-medium">How it works:</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1.5">How it works</div>
               <ul className="mt-1 space-y-1 text-muted-foreground">
                 <li>• Pre-configured mappings are checked first</li>
                 <li>• If no mapping exists, AI (ChatGPT) maps the metric name</li>

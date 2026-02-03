@@ -84,23 +84,23 @@ export default function InstitutionDetailPage({
   const revenueSeries = getMetricTimeSeries(id, "metric-total-revenue");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Back link */}
-      <Button variant="ghost" asChild>
+      <Button variant="ghost" size="sm" asChild>
         <Link href="/portfolio">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Portfolio
+          <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back to Portfolio
         </Link>
       </Button>
 
       {/* Institution header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-100 text-2xl font-bold text-blue-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-internal/10 text-xl font-display font-semibold text-internal">
             {institution.shortName.charAt(0)}
           </div>
           <div>
-            <h1 className="text-3xl font-bold">{institution.name}</h1>
-            <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">{institution.name}</h1>
+            <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
                 {institution.state}, {institution.region}
@@ -122,10 +122,10 @@ export default function InstitutionDetailPage({
       </div>
 
       {/* Peer groups */}
-      <Card>
+      <Card className="border-l-2 border-l-internal">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-internal" />
             Peer Group Memberships
           </CardTitle>
         </CardHeader>
@@ -148,25 +148,25 @@ export default function InstitutionDetailPage({
           if (!metric) return null;
 
           return (
-            <Card key={metricId}>
-              <CardContent className="p-6">
+            <Card key={metricId} className="hover-lift">
+              <CardContent className="p-5">
                 <div className="flex items-start justify-between">
-                  <div className="text-sm font-medium text-muted-foreground">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {metric.shortName}
                   </div>
                   <Badge
                     variant={metric.isInternal ? "internal" : "outline"}
                     className="text-xs"
                   >
-                    {metric.isInternal ? "internal" : "public"}
+                    {metric.isInternal ? "int" : "pub"}
                   </Badge>
                 </div>
-                <div className="mt-2 text-3xl font-bold">
+                <div className="mt-2 text-2xl font-display font-semibold font-data">
                   {value ? formatValue(value.value, metric.unit) : "—"}
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>FY {value?.fiscalYear || "—"}</span>
-                  <span>·</span>
+                  <span className="font-data">FY {value?.fiscalYear || "—"}</span>
+                  <span className="text-border">·</span>
                   <Badge
                     variant={value?.confidence as "high" | "medium" | "low" || "outline"}
                     className="text-xs"
@@ -236,10 +236,10 @@ export default function InstitutionDetailPage({
                           {metric.dataSource}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium font-data">
                         {value ? formatValue(value.value, metric.unit) : "—"}
                       </TableCell>
-                      <TableCell>FY {value?.fiscalYear || "—"}</TableCell>
+                      <TableCell className="font-data">FY {value?.fiscalYear || "—"}</TableCell>
                       <TableCell>
                         {value && (
                           <Badge

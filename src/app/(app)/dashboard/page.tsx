@@ -14,46 +14,42 @@ import {
   metricDefinitions,
 } from "@/data";
 import { useState } from "react";
-import { ArrowRight, TrendingUp, Building2, BarChart3 } from "lucide-react";
+import { ArrowRight, Building2, BarChart3, GitCompare } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const portfolioInstitutions = getPortfolioInstitutions();
 
-  // Get time series for research expenditure trend
   const researchSeries = portfolioInstitutions.slice(0, 4).map((inst) =>
     getMetricTimeSeries(inst.id, "metric-research-expenditure")
   ).filter(Boolean) as NonNullable<ReturnType<typeof getMetricTimeSeries>>[];
 
-  // Get retention rate comparison data
   const retentionData = portfolioInstitutions.map((inst) => {
     const value = getLatestMetricValue(inst.id, "metric-retention-rate");
     return {
       name: inst.shortName,
       portfolio: value?.value || 0,
-      benchmark: 90.5, // Mock benchmark average
+      benchmark: 90.5,
       isPortfolio: true,
     };
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Portfolio overview and key performance indicators
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/portfolio">
-              View Portfolio <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/portfolio">
+            View Portfolio <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </div>
 
       {/* Global filters */}
@@ -71,8 +67,10 @@ export default function DashboardPage() {
         <TabsContent value="overview" className="space-y-6">
           {/* KPI Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {dashboardKPIs.map((kpi) => (
-              <KPICard key={kpi.id} kpi={kpi} />
+            {dashboardKPIs.map((kpi, i) => (
+              <div key={kpi.id} className={`animate-fade-in stagger-${i + 1}`}>
+                <KPICard kpi={kpi} />
+              </div>
             ))}
           </div>
 
@@ -82,71 +80,67 @@ export default function DashboardPage() {
               title="Research Expenditures Trend"
               series={researchSeries}
               unit="currency"
-              height={300}
+              height={280}
             />
             <ComparisonBarChart
               title="Retention Rate by Institution"
               data={retentionData}
               unit="percentage"
-              height={300}
+              height={280}
             />
           </div>
 
           {/* Quick access cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <Link href="/portfolio">
-                <CardContent className="flex items-center gap-4 p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                    <Building2 className="h-6 w-6 text-blue-600" />
+            <Link href="/portfolio" className="group">
+              <Card className="hover-lift h-full">
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-internal/10">
+                    <Building2 className="h-5 w-5 text-internal" />
                   </div>
-                  <div>
-                    <div className="font-semibold">Portfolio Data</div>
-                    <div className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm">Portfolio Data</div>
+                    <div className="text-xs text-muted-foreground">
                       {portfolioInstitutions.length} institutions
                     </div>
                   </div>
-                  <Badge variant="internal" className="ml-auto">
-                    Internal
-                  </Badge>
+                  <Badge variant="internal">Internal</Badge>
                 </CardContent>
-              </Link>
-            </Card>
+              </Card>
+            </Link>
 
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <Link href="/benchmarks">
-                <CardContent className="flex items-center gap-4 p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                    <BarChart3 className="h-6 w-6 text-green-600" />
+            <Link href="/benchmarks" className="group">
+              <Card className="hover-lift h-full">
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-external/10">
+                    <BarChart3 className="h-5 w-5 text-external" />
                   </div>
-                  <div>
-                    <div className="font-semibold">Benchmarks</div>
-                    <div className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm">Benchmarks</div>
+                    <div className="text-xs text-muted-foreground">
                       Peer group analysis
                     </div>
                   </div>
-                  <Badge variant="external" className="ml-auto">
-                    External
-                  </Badge>
+                  <Badge variant="external">External</Badge>
                 </CardContent>
-              </Link>
-            </Card>
+              </Card>
+            </Link>
 
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <Link href="/compare">
-                <CardContent className="flex items-center gap-4 p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
+            <Link href="/compare" className="group">
+              <Card className="hover-lift h-full">
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-copper/10">
+                    <GitCompare className="h-5 w-5 text-copper" />
                   </div>
-                  <div>
-                    <div className="font-semibold">Compare</div>
-                    <div className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm">Compare</div>
+                    <div className="text-xs text-muted-foreground">
                       Internal vs External
                     </div>
                   </div>
                 </CardContent>
-              </Link>
-            </Card>
+              </Card>
+            </Link>
           </div>
         </TabsContent>
 
@@ -163,7 +157,7 @@ export default function DashboardPage() {
               <CardTitle>Financial metrics coming soon</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Additional financial charts and analysis will be displayed here.
               </p>
             </CardContent>
@@ -183,7 +177,7 @@ export default function DashboardPage() {
               <CardTitle>Enrollment trends coming soon</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Enrollment analysis and demographic breakdowns will be displayed here.
               </p>
             </CardContent>
@@ -205,7 +199,7 @@ export default function DashboardPage() {
             title="Retention Rate by Institution"
             data={retentionData}
             unit="percentage"
-            height={350}
+            height={320}
           />
         </TabsContent>
       </Tabs>

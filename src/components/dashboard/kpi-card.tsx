@@ -36,30 +36,30 @@ export function KPICard({ kpi }: KPICardProps) {
 
   const trendColor = kpi.trendIsPositive
     ? kpi.trend === "up"
-      ? "text-green-600"
-      : "text-red-600"
+      ? "text-emerald-600"
+      : "text-rose-600"
     : kpi.trend === "up"
-    ? "text-red-600"
-    : "text-green-600";
+    ? "text-rose-600"
+    : "text-emerald-600";
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              {kpi.label}
-            </p>
-            <p className="mt-2 text-3xl font-bold">{formatValue(kpi.value)}</p>
-          </div>
+    <Card className="hover-lift">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            {kpi.label}
+          </p>
           <Badge variant={kpi.source === "internal" ? "internal" : "external"}>
             {kpi.source}
           </Badge>
         </div>
-        <div className={cn("mt-4 flex items-center gap-2 text-sm", trendColor)}>
-          <TrendIcon className="h-4 w-4" />
-          <span className="font-medium">{changeFormatted}</span>
-          <span className="text-muted-foreground">vs prior year</span>
+        <p className="text-2xl font-display font-semibold tracking-tight font-data">
+          {formatValue(kpi.value)}
+        </p>
+        <div className={cn("mt-3 flex items-center gap-1.5 text-xs", trendColor)}>
+          <TrendIcon className="h-3.5 w-3.5" />
+          <span className="font-semibold font-data">{changeFormatted}</span>
+          <span className="text-muted-foreground ml-0.5">vs prior year</span>
         </div>
       </CardContent>
     </Card>

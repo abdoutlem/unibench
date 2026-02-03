@@ -42,7 +42,7 @@ function TabsList({ children, className }: TabsListProps) {
   return (
     <div
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+        "inline-flex items-center gap-1 border-b border-border",
         className
       )}
     >
@@ -66,14 +66,17 @@ function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       type="button"
       onClick={() => onValueChange(value)}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "relative px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isActive
-          ? "bg-background text-foreground shadow-sm"
-          : "hover:bg-background/50",
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-foreground/80",
         className
       )}
     >
       {children}
+      {isActive && (
+        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+      )}
     </button>
   );
 }
@@ -94,7 +97,7 @@ function TabsContent({ value, children, className }: TabsContentProps) {
   return (
     <div
       className={cn(
-        "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "mt-4 animate-fade-in",
         className
       )}
     >

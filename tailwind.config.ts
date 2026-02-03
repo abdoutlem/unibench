@@ -9,6 +9,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-outfit)", "system-ui", "sans-serif"],
+        display: ["var(--font-fraunces)", "Georgia", "serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -43,7 +47,6 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Custom colors for internal/external data distinction
         internal: {
           DEFAULT: "hsl(var(--internal))",
           foreground: "hsl(var(--internal-foreground))",
@@ -52,11 +55,24 @@ const config: Config = {
           DEFAULT: "hsl(var(--external))",
           foreground: "hsl(var(--external-foreground))",
         },
+        copper: {
+          DEFAULT: "hsl(var(--copper))",
+          foreground: "hsl(var(--copper-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        "card": "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+        "card-hover": "0 8px 24px -8px rgba(0, 0, 0, 0.08)",
+        "elevated": "0 4px 16px -4px rgba(0, 0, 0, 0.06)",
+      },
+      animation: {
+        "fade-in": "fadeIn 0.5s ease-out forwards",
+        "slide-up": "slideUp 0.4s ease-out forwards",
       },
     },
   },

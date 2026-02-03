@@ -38,7 +38,6 @@ export default function PortfolioPage() {
 
   const selectedMetricDef = metricDefinitions.find((m) => m.id === selectedMetric);
 
-  // Get time series for all portfolio institutions for selected metric
   const trendSeries = portfolioInstitutions
     .map((inst) => getMetricTimeSeries(inst.id, selectedMetric))
     .filter(Boolean) as NonNullable<ReturnType<typeof getMetricTimeSeries>>[];
@@ -57,33 +56,32 @@ export default function PortfolioPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-            <Building2 className="h-5 w-5 text-blue-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-internal/10">
+            <Building2 className="h-4.5 w-4.5 text-internal" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Portfolio</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Portfolio</h1>
+            <p className="text-sm text-muted-foreground">
               Internal institutional data and analysis
             </p>
           </div>
         </div>
-        <Badge variant="internal" className="text-sm px-3 py-1">
+        <Badge variant="internal" className="text-xs px-2.5 py-1">
           Internal Data
         </Badge>
       </div>
 
-      {/* Global filters */}
       <GlobalFilters />
 
       {/* Internal metrics highlight */}
-      <Card className="border-blue-200 bg-blue-50/50">
+      <Card className="border-l-2 border-l-internal">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
             Internal-Only Metrics
           </CardTitle>
         </CardHeader>
@@ -92,9 +90,9 @@ export default function PortfolioPage() {
             These metrics are derived from internal documents and are not available
             for external benchmarking.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {internalMetrics.map((metric) => (
-              <Badge key={metric.id} variant="outline" className="bg-white">
+              <Badge key={metric.id} variant="outline" className="text-xs">
                 {metric.shortName}
               </Badge>
             ))}
@@ -116,26 +114,17 @@ export default function PortfolioPage() {
           </CardHeader>
           <CardContent>
             {selectedMetricDef && (
-              <div className="mb-4 p-3 rounded-lg bg-muted/50">
-                <div className="font-medium">{selectedMetricDef.name}</div>
-                <div className="text-sm text-muted-foreground">
+              <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border/50">
+                <div className="font-medium text-sm">{selectedMetricDef.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
                   {selectedMetricDef.description}
                 </div>
-                <div className="flex gap-4 mt-2 text-xs">
-                  <span>
-                    Source:{" "}
-                    <Badge variant="outline" className="text-xs">
-                      {selectedMetricDef.dataSource}
-                    </Badge>
+                <div className="flex gap-3 mt-2">
+                  <span className="text-xs text-muted-foreground">
+                    Source: <Badge variant="outline" className="text-[10px] ml-0.5">{selectedMetricDef.dataSource}</Badge>
                   </span>
-                  <span>
-                    Confidence:{" "}
-                    <Badge
-                      variant={selectedMetricDef.confidence as "high" | "medium" | "low"}
-                      className="text-xs"
-                    >
-                      {selectedMetricDef.confidence}
-                    </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Confidence: <Badge variant={selectedMetricDef.confidence as "high" | "medium" | "low"} className="text-[10px] ml-0.5">{selectedMetricDef.confidence}</Badge>
                   </span>
                 </div>
               </div>
@@ -144,7 +133,7 @@ export default function PortfolioPage() {
               title=""
               series={trendSeries}
               unit={selectedMetricDef?.unit || "count"}
-              height={300}
+              height={280}
             />
           </CardContent>
         </Card>
@@ -154,28 +143,28 @@ export default function PortfolioPage() {
           <CardHeader>
             <CardTitle>Portfolio Institutions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1">
             {portfolioInstitutions.map((inst) => {
               const latestValue = getLatestMetricValue(inst.id, selectedMetric);
               return (
                 <Link
                   key={inst.id}
                   href={`/portfolio/${inst.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors"
+                  className="flex items-center justify-between p-2.5 rounded-md hover:bg-muted/60 transition-colors group"
                 >
                   <div>
-                    <div className="font-medium">{inst.shortName}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm font-medium group-hover:text-primary transition-colors">{inst.shortName}</div>
+                    <div className="text-xs text-muted-foreground">
                       {inst.state} · {inst.type}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {latestValue && (
-                      <span className="text-sm font-medium">
+                      <span className="text-xs font-medium font-data">
                         {formatValue(latestValue.value, selectedMetricDef?.unit || "count")}
                       </span>
                     )}
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                 </Link>
               );
@@ -213,18 +202,18 @@ export default function PortfolioPage() {
                 return (
                   <TableRow key={inst.id}>
                     <TableCell className="font-medium">{inst.shortName}</TableCell>
-                    <TableCell>{inst.state}</TableCell>
-                    <TableCell className="capitalize">{inst.type}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-muted-foreground">{inst.state}</TableCell>
+                    <TableCell className="capitalize text-muted-foreground">{inst.type}</TableCell>
+                    <TableCell className="text-right font-data">
                       {revenue ? formatCurrency(revenue.value, true) : "—"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-data">
                       {research ? formatCurrency(research.value, true) : "—"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-data">
                       {enrollment ? formatNumber(enrollment.value, true) : "—"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-data">
                       {retention ? formatPercent(retention.value) : "—"}
                     </TableCell>
                     <TableCell>

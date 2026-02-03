@@ -112,16 +112,16 @@ export default function ExplorationPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-            <Sparkles className="h-5 w-5 text-purple-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10">
+            <Sparkles className="h-4.5 w-4.5 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Data Exploration</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Data Exploration</h1>
+            <p className="text-sm text-muted-foreground">
               Discover and curate metrics from data sources
             </p>
           </div>
@@ -159,26 +159,26 @@ export default function ExplorationPage() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">{groups.length}</div>
-            <div className="text-sm text-muted-foreground">Metric Groups</div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Metric Groups</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{groups.length}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Metrics</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">
               {groups.reduce((sum, g) => sum + g.metrics.length, 0)}
             </div>
-            <div className="text-sm text-muted-foreground">Total Metrics</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Observations</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">
               {groups.reduce((sum, g) => sum + g.total_observations, 0).toLocaleString()}
             </div>
-            <div className="text-sm text-muted-foreground">Total Observations</div>
           </CardContent>
         </Card>
       </div>
@@ -207,7 +207,7 @@ export default function ExplorationPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold">{group.canonical_name}</h3>
+                        <h3 className="text-base font-semibold">{group.canonical_name}</h3>
                         <Badge variant="outline" className="text-xs capitalize">
                           {group.category}
                         </Badge>
@@ -325,7 +325,7 @@ export default function ExplorationPage() {
                         {group.metrics.map((metric) => (
                           <div
                             key={metric.metric_id}
-                            className="flex items-center justify-between p-2 rounded-md bg-muted/50"
+                            className="flex items-center justify-between p-2.5 rounded-md border border-border/60"
                           >
                             <div className="flex-1">
                               <div className="text-sm font-medium">{metric.canonical_name}</div>

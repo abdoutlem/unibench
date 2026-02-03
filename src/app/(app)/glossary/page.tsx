@@ -281,15 +281,15 @@ export default function GlossaryPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-          <BookOpen className="h-5 w-5 text-amber-600" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
+          <BookOpen className="h-4.5 w-4.5 text-amber-600" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Glossary</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Glossary</h1>
+          <p className="text-sm text-muted-foreground">
             Metric definitions, calculations, and data governance
           </p>
         </div>
@@ -315,10 +315,10 @@ export default function GlossaryPage() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search metrics..."
+                    placeholder="Search metrics by name, description..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-colors"
                   />
                 </div>
 
@@ -390,25 +390,25 @@ export default function GlossaryPage() {
                       <div className="px-4 pb-4 pt-0 border-t">
                         <div className="grid gap-4 md:grid-cols-2 mt-4">
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Calculation Method
                             </h4>
                             <p className="text-sm">{metric.calculationMethod}</p>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Data Source
                             </h4>
                             <Badge variant="outline">{metric.dataSource}</Badge>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Unit
                             </h4>
                             <Badge variant="secondary">{metric.unit}</Badge>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Confidence Level
                             </h4>
                             <Badge variant={metric.confidence as "high" | "medium" | "low"}>
@@ -416,19 +416,19 @@ export default function GlossaryPage() {
                             </Badge>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Version
                             </h4>
-                            <span className="text-sm">v{metric.version}</span>
+                            <span className="text-sm font-data">v{metric.version}</span>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Effective Date
                             </h4>
-                            <span className="text-sm">{metric.effectiveDate}</span>
+                            <span className="text-sm font-data">{metric.effectiveDate}</span>
                           </div>
                           <div className="md:col-span-2">
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
                               Dimensions
                             </h4>
                             <p className="text-sm text-muted-foreground">
@@ -448,7 +448,7 @@ export default function GlossaryPage() {
         <TabsContent value="manage" className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Manage glossary metrics</h2>
+              <h2 className="font-display text-lg font-semibold">Manage glossary metrics</h2>
               <p className="text-sm text-muted-foreground">
                 Create/edit metrics that the extractor + AI will use. Changes are saved to the backend glossary.
               </p>
@@ -838,7 +838,7 @@ export default function GlossaryPage() {
         <TabsContent value="dimensions" className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Manage Dimensions</h2>
+              <h2 className="font-display text-lg font-semibold">Manage Dimensions</h2>
               <p className="text-sm text-muted-foreground">
                 Define dimensions and their authorized values to prevent extraction hallucination.
               </p>
@@ -1056,29 +1056,29 @@ export default function GlossaryPage() {
         <TabsContent value="peer-groups" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             {peerGroups.map((group) => (
-              <Card key={group.id}>
+              <Card key={group.id} className="hover-lift">
                 <CardHeader>
-                  <CardTitle className="text-lg">{group.name}</CardTitle>
+                  <CardTitle>{group.name}</CardTitle>
                   <CardDescription>{group.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                         Inclusion Criteria
                       </h4>
-                      <ul className="text-sm space-y-1">
+                      <ul className="text-sm space-y-1.5">
                         {group.criteria.map((criterion, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="text-green-600">•</span>
+                            <span className="text-emerald-600 mt-0.5">·</span>
                             {criterion}
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div className="flex items-center gap-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 pt-3 border-t">
                       <Badge variant="secondary">
-                        {group.institutionCount} institutions
+                        <span className="font-data">{group.institutionCount}</span> institutions
                       </Badge>
                     </div>
                   </div>
@@ -1146,9 +1146,9 @@ export default function GlossaryPage() {
                 reliability: "medium",
               },
             ].map((source) => (
-              <Card key={source.id}>
+              <Card key={source.id} className="hover-lift">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center justify-between">
+                  <CardTitle className="flex items-center justify-between">
                     {source.name}
                     <Badge
                       variant={source.type === "internal" ? "internal" : source.type === "external" ? "external" : "secondary"}

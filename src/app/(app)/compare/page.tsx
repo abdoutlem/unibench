@@ -152,28 +152,27 @@ export default function ComparePage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-            <GitCompare className="h-5 w-5 text-purple-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-copper/10">
+            <GitCompare className="h-4.5 w-4.5 text-copper" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Compare</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Compare</h1>
+            <p className="text-sm text-muted-foreground">
               Internal portfolio vs external benchmarks
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Badge variant="internal">Internal</Badge>
-          <span className="text-muted-foreground">vs</span>
+          <span className="text-xs text-muted-foreground">vs</span>
           <Badge variant="external">External</Badge>
         </div>
       </div>
 
-      {/* Global filters */}
       <GlobalFilters />
 
       {/* Institution selector */}
@@ -204,37 +203,37 @@ export default function ComparePage() {
 
       {/* Summary comparison cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-sm font-medium text-blue-600">
-              <Badge variant="internal" className="text-xs">Internal</Badge>
+        <Card className="border-l-2 border-l-internal">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 text-xs font-medium text-internal">
+              <Badge variant="internal" className="text-[10px]">Internal</Badge>
               {selectedInst?.shortName}
             </div>
-            <div className="mt-2 text-3xl font-bold">
+            <div className="mt-2 text-2xl font-display font-semibold font-data">
               {formatValue(
                 getLatestMetricValue(selectedInstitution, selectedMetric)?.value || null,
                 selectedMetricDef?.unit || "count"
               )}
             </div>
-            <div className="mt-1 text-sm text-muted-foreground">
+            <div className="mt-1 text-xs text-muted-foreground">
               {selectedMetricDef?.shortName}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-              <Badge variant="external" className="text-xs">External</Badge>
+        <Card className="border-l-2 border-l-external">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 text-xs font-medium text-external">
+              <Badge variant="external" className="text-[10px]">External</Badge>
               Peer Average
             </div>
-            <div className="mt-2 text-3xl font-bold">
+            <div className="mt-2 text-2xl font-display font-semibold font-data">
               {formatValue(
                 calculatePeerAverage(selectedMetric),
                 selectedMetricDef?.unit || "count"
               )}
             </div>
-            <div className="mt-1 text-sm text-muted-foreground">
+            <div className="mt-1 text-xs text-muted-foreground">
               {peerInstitutions.length} institutions
             </div>
           </CardContent>
@@ -242,11 +241,11 @@ export default function ComparePage() {
 
         <Card>
           <CardContent className="p-6">
-            <div className="text-sm font-medium text-muted-foreground">Variance</div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Variance</div>
             {(() => {
               const instVal = getLatestMetricValue(selectedInstitution, selectedMetric)?.value;
               const peerAvg = calculatePeerAverage(selectedMetric);
-              if (!instVal || !peerAvg) return <div className="mt-2 text-3xl font-bold">—</div>;
+              if (!instVal || !peerAvg) return <div className="mt-2 text-2xl font-display font-semibold">—</div>;
 
               const variance = instVal - peerAvg;
               const variancePct = (variance / peerAvg) * 100;
@@ -255,15 +254,15 @@ export default function ComparePage() {
               return (
                 <>
                   <div className={cn(
-                    "mt-2 text-3xl font-bold flex items-center gap-2",
-                    isPositive ? "text-green-600" : "text-red-600"
+                    "mt-2 text-2xl font-display font-semibold flex items-center gap-1.5 font-data",
+                    isPositive ? "text-emerald-600" : "text-rose-600"
                   )}>
-                    {isPositive ? <ArrowUpRight className="h-6 w-6" /> : <ArrowDownRight className="h-6 w-6" />}
+                    {isPositive ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
                     {formatValue(Math.abs(variance), selectedMetricDef?.unit || "count")}
                   </div>
                   <div className={cn(
-                    "mt-1 text-sm",
-                    isPositive ? "text-green-600" : "text-red-600"
+                    "mt-1 text-xs font-data",
+                    isPositive ? "text-emerald-600" : "text-rose-600"
                   )}>
                     {isPositive ? "+" : ""}{variancePct.toFixed(1)}% vs peer average
                   </div>

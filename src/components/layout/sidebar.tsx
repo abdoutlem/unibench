@@ -90,29 +90,26 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r bg-card transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        "flex flex-col border-r bg-card transition-all duration-300 relative",
+        collapsed ? "w-[68px]" : "w-60"
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b px-4">
-        {!collapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              U
-            </div>
-            <span className="font-semibold">UniBench</span>
-          </Link>
-        )}
-        {collapsed && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold mx-auto">
+      <div className="flex h-14 items-center border-b px-4">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold shrink-0">
             U
           </div>
-        )}
+          {!collapsed && (
+            <span className="font-display text-base font-semibold tracking-tight">
+              UniBench
+            </span>
+          )}
+        </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 py-3 px-2 space-y-0.5">
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
@@ -120,32 +117,29 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors group",
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-primary/8 text-primary border-l-2 border-primary -ml-px"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className={cn(
+                "h-4 w-4 shrink-0",
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )} />
               {!collapsed && (
                 <>
-                  <div className="flex-1">
-                    <div>{item.name}</div>
-                    {item.description && (
-                      <div className="text-xs opacity-70">{item.description}</div>
-                    )}
-                  </div>
+                  <span className="flex-1 truncate">{item.name}</span>
                   {item.badge && (
                     <span
                       className={cn(
-                        "rounded-full px-2 py-0.5 text-xs",
+                        "rounded px-1.5 py-px text-[10px] font-medium uppercase tracking-wider",
                         item.badge === "internal"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-green-100 text-green-700",
-                        isActive && "bg-primary-foreground/20 text-primary-foreground"
+                          ? "bg-internal/8 text-internal"
+                          : "bg-external/8 text-external"
                       )}
                     >
-                      {item.badge}
+                      {item.badge === "internal" ? "int" : "ext"}
                     </span>
                   )}
                 </>
@@ -156,7 +150,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom nav */}
-      <div className="border-t p-2">
+      <div className="border-t py-2 px-2">
         {bottomNavigation.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
@@ -164,34 +158,32 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-primary/8 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.name}</span>}
             </Link>
           );
         })}
 
         {/* Collapse toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full mt-2"
+          className="flex items-center gap-2 w-full rounded-md px-2.5 py-2 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors mt-1"
         >
           {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 mx-auto" />
           ) : (
             <>
-              <ChevronLeft className="h-4 w-4 mr-2" />
+              <ChevronLeft className="h-4 w-4" />
               <span>Collapse</span>
             </>
           )}
-        </Button>
+        </button>
       </div>
     </aside>
   );

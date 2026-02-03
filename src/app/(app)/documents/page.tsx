@@ -87,16 +87,16 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-            <FileStack className="h-5 w-5 text-blue-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-internal/10">
+            <FileStack className="h-4.5 w-4.5 text-internal" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Data Sources</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Data Sources</h1>
+            <p className="text-sm text-muted-foreground">
               Manage documents, URLs, and data source configurations
             </p>
           </div>
@@ -140,108 +140,64 @@ export default function DocumentsPage() {
 
       {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Database className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{dataSourceStats.total}</div>
-                <div className="text-sm text-muted-foreground">Total Sources</div>
-              </div>
-            </div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Sources</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{dataSourceStats.total}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{dataSourceStats.active}</div>
-                <div className="text-sm text-muted-foreground">Active</div>
-              </div>
-            </div>
+            <div className="text-xs font-medium text-emerald-600 uppercase tracking-wider">Active</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{dataSourceStats.active}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <FileStack className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{dataSourceStats.documents}</div>
-                <div className="text-sm text-muted-foreground">Documents</div>
-              </div>
-            </div>
+            <div className="text-xs font-medium text-internal uppercase tracking-wider">Documents</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{dataSourceStats.documents}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Globe className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{dataSourceStats.urls}</div>
-                <div className="text-sm text-muted-foreground">URL Sources</div>
-              </div>
-            </div>
+            <div className="text-xs font-medium text-purple-600 uppercase tracking-wider">URL Sources</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{dataSourceStats.urls}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gray-100">
-                <Clock className="h-5 w-5 text-gray-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{dataSourceStats.inactive}</div>
-                <div className="text-sm text-muted-foreground">Inactive</div>
-              </div>
-            </div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Inactive</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{dataSourceStats.inactive}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover-lift">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{dataSourceStats.error}</div>
-                <div className="text-sm text-muted-foreground">Errors</div>
-              </div>
-            </div>
+            <div className="text-xs font-medium text-rose-600 uppercase tracking-wider">Errors</div>
+            <div className="mt-1 text-2xl font-display font-semibold font-data">{dataSourceStats.error}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Info banner */}
-      <Card className="border-blue-200 bg-blue-50/50">
+      <Card className="border-l-2 border-l-internal">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <Database className="h-5 w-5 text-blue-600" />
-            </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Data Sources Management</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium text-sm">Data Sources Management</h3>
+                <Badge variant="internal">Internal Data</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
                 Manage all your data sources including uploaded documents and URL-based sources.
                 Configure update frequencies, extraction rules, and monitor status. Documents
-                support PDF, Excel, Word, PowerPoint, and CSV formats. URL sources can be
-                automatically fetched and processed on a schedule.
+                support PDF, Excel, Word, PowerPoint, and CSV formats.
               </p>
             </div>
-            <Badge variant="internal">Internal Data</Badge>
           </div>
         </CardContent>
       </Card>

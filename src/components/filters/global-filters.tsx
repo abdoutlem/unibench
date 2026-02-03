@@ -32,39 +32,41 @@ export function GlobalFilters() {
   } = useFiltersStore();
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
+    <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-card/80 backdrop-blur-sm p-3">
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">Peer Group:</label>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Peer Group</label>
         <Select
           value={selectedPeerGroupId || ""}
           onValueChange={setSelectedPeerGroup}
           options={peerGroupOptions}
-          className="w-48"
+          className="w-44"
         />
       </div>
 
+      <div className="h-4 w-px bg-border hidden sm:block" />
+
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">From:</label>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">From</label>
         <Select
           value={String(fiscalYearStart)}
           onValueChange={(v) => setFiscalYearRange(parseInt(v), fiscalYearEnd)}
           options={yearOptions}
-          className="w-28"
+          className="w-24"
         />
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">To:</label>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">To</label>
         <Select
           value={String(fiscalYearEnd)}
           onValueChange={(v) => setFiscalYearRange(fiscalYearStart, parseInt(v))}
           options={yearOptions}
-          className="w-28"
+          className="w-24"
         />
       </div>
 
-      <Button variant="outline" size="sm" onClick={reset}>
-        <RotateCcw className="h-4 w-4 mr-1" />
+      <Button variant="ghost" size="sm" onClick={reset} className="ml-auto text-muted-foreground">
+        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
         Reset
       </Button>
     </div>

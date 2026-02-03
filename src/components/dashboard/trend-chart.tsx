@@ -22,12 +22,12 @@ interface TrendChartProps {
 }
 
 const COLORS = [
-  "#2563eb", // blue
-  "#16a34a", // green
-  "#dc2626", // red
-  "#9333ea", // purple
-  "#ea580c", // orange
-  "#0891b2", // cyan
+  "hsl(210, 60%, 42%)",
+  "hsl(152, 40%, 38%)",
+  "hsl(20, 60%, 55%)",
+  "hsl(270, 40%, 50%)",
+  "hsl(35, 55%, 50%)",
+  "hsl(190, 50%, 40%)",
 ];
 
 export function TrendChart({
@@ -36,7 +36,6 @@ export function TrendChart({
   unit,
   height = 300,
 }: TrendChartProps) {
-  // Transform data for recharts
   const data = series[0]?.data.map((point) => {
     const entry: Record<string, number> = { year: point.fiscalYear };
     series.forEach((s) => {
@@ -61,25 +60,73 @@ export function TrendChart({
     }
   };
 
+  if (!title) {
+    return (
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart data={data} margin={{ top: 5, right: 16, left: 8, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.6} />
+          <XAxis
+            dataKey="year"
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            axisLine={{ stroke: "hsl(var(--border))" }}
+            tickLine={false}
+          />
+          <YAxis
+            tickFormatter={formatValue}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            axisLine={false}
+            tickLine={false}
+            width={72}
+          />
+          <Tooltip
+            formatter={(value) => formatValue(Number(value))}
+            labelFormatter={(label) => `FY ${label}`}
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+              fontSize: "12px",
+              boxShadow: "0 4px 16px -4px rgba(0,0,0,0.06)",
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: "12px" }} />
+          {series.map((s, index) => (
+            <Line
+              key={s.institutionId}
+              type="monotone"
+              dataKey={s.institutionName}
+              stroke={COLORS[index % COLORS.length]}
+              strokeWidth={2}
+              dot={{ r: 2.5, strokeWidth: 0, fill: COLORS[index % COLORS.length] }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "hsl(var(--card))" }}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
-          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <LineChart data={data} margin={{ top: 5, right: 16, left: 8, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.6} />
             <XAxis
               dataKey="year"
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+              tickLine={false}
             />
             <YAxis
               tickFormatter={formatValue}
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-              width={80}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+              width={72}
             />
             <Tooltip
               formatter={(value) => formatValue(Number(value))}
@@ -88,9 +135,11 @@ export function TrendChart({
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "8px",
+                fontSize: "12px",
+                boxShadow: "0 4px 16px -4px rgba(0,0,0,0.06)",
               }}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
             {series.map((s, index) => (
               <Line
                 key={s.institutionId}
@@ -98,8 +147,8 @@ export function TrendChart({
                 dataKey={s.institutionName}
                 stroke={COLORS[index % COLORS.length]}
                 strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
+                dot={{ r: 2.5, strokeWidth: 0, fill: COLORS[index % COLORS.length] }}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "hsl(var(--card))" }}
               />
             ))}
           </LineChart>

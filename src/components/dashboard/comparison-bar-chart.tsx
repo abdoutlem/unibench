@@ -47,27 +47,31 @@ export function ComparisonBarChart({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
           <BarChart
             data={data}
             layout="vertical"
-            margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+            margin={{ top: 5, right: 16, left: 80, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.6} horizontal={false} />
             <XAxis
               type="number"
               tickFormatter={formatValue}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+              tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fontSize: 12 }}
-              width={90}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              axisLine={false}
+              tickLine={false}
+              width={75}
             />
             <Tooltip
               formatter={(value) => formatValue(Number(value))}
@@ -75,18 +79,20 @@ export function ComparisonBarChart({
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "8px",
+                fontSize: "12px",
+                boxShadow: "0 4px 16px -4px rgba(0,0,0,0.06)",
               }}
             />
-            <Legend />
-            <Bar dataKey="portfolio" name="Portfolio" fill="#2563eb" radius={[0, 4, 4, 0]}>
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            <Bar dataKey="portfolio" name="Portfolio" fill="hsl(210, 60%, 42%)" radius={[0, 3, 3, 0]}>
               {data.map((entry, index) => (
                 <Cell
                   key={`portfolio-${index}`}
-                  fill={entry.isPortfolio ? "#2563eb" : "#94a3b8"}
+                  fill={entry.isPortfolio ? "hsl(210, 60%, 42%)" : "hsl(var(--muted-foreground) / 0.3)"}
                 />
               ))}
             </Bar>
-            <Bar dataKey="benchmark" name="Benchmark Avg" fill="#16a34a" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="benchmark" name="Benchmark Avg" fill="hsl(152, 40%, 38%)" radius={[0, 3, 3, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

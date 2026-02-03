@@ -94,46 +94,45 @@ export default function BenchmarksPage() {
     .filter(Boolean) as NonNullable<ReturnType<typeof getMetricTimeSeries>>[];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-            <BarChart3 className="h-5 w-5 text-green-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-external/10">
+            <BarChart3 className="h-4.5 w-4.5 text-external" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Benchmarks</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Benchmarks</h1>
+            <p className="text-sm text-muted-foreground">
               External peer group analysis and comparisons
             </p>
           </div>
         </div>
-        <Badge variant="external" className="text-sm px-3 py-1">
+        <Badge variant="external" className="text-xs px-2.5 py-1">
           External Data
         </Badge>
       </div>
 
-      {/* Global filters */}
       <GlobalFilters />
 
       {/* Peer group info */}
       {selectedPeerGroup && (
-        <Card className="border-green-200 bg-green-50/50">
+        <Card className="border-l-2 border-l-external">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Database className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-muted-foreground" />
               {selectedPeerGroup.name}
             </CardTitle>
             <CardDescription>{selectedPeerGroup.description}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4 text-sm">
-              <span className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="flex items-center gap-1.5 text-xs">
+                <CheckCircle className="h-3.5 w-3.5 text-external" />
                 {peerInstitutions.length} institutions
               </span>
-              <span className="flex items-center gap-1">
-                <Info className="h-4 w-4 text-blue-600" />
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5" />
                 Criteria: {selectedPeerGroup.criteria.join(", ")}
               </span>
             </div>
@@ -162,14 +161,14 @@ export default function BenchmarksPage() {
               const metricDef = metricDefinitions.find((m) => m.id === metric);
               return (
                 <Card key={metric}>
-                  <CardContent className="p-6">
-                    <div className="text-sm font-medium text-muted-foreground">
+                  <CardContent className="p-5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {label}
                     </div>
-                    <div className="mt-2 text-2xl font-bold">
+                    <div className="mt-2 text-xl font-display font-semibold font-data">
                       {formatValue(avg, metricDef?.unit || "count")}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="mt-1 text-[11px] text-muted-foreground">
                       Peer group average
                     </div>
                   </CardContent>
@@ -209,19 +208,17 @@ export default function BenchmarksPage() {
             </CardHeader>
             <CardContent>
               {selectedMetricDef && (
-                <div className="p-4 rounded-lg bg-muted/50 mb-6">
-                  <div className="font-medium">{selectedMetricDef.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">
+                <div className="p-3 rounded-lg bg-muted/50 border border-border/50 mb-6">
+                  <div className="font-medium text-sm">{selectedMetricDef.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     {selectedMetricDef.description}
                   </div>
-                  <div className="flex gap-4 mt-3 text-xs">
-                    <span>
-                      Source:{" "}
-                      <Badge variant="outline">{selectedMetricDef.dataSource}</Badge>
+                  <div className="flex gap-3 mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      Source: <Badge variant="outline" className="text-[10px] ml-0.5">{selectedMetricDef.dataSource}</Badge>
                     </span>
-                    <span>
-                      Unit:{" "}
-                      <Badge variant="outline">{selectedMetricDef.unit}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Unit: <Badge variant="outline" className="text-[10px] ml-0.5">{selectedMetricDef.unit}</Badge>
                     </span>
                   </div>
                 </div>

@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store";
+import { cn } from "@/lib/utils";
 import {
   Settings,
   User,
@@ -17,15 +18,15 @@ export default function SettingsPage() {
   const { user } = useAuthStore();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-          <Settings className="h-5 w-5 text-gray-600" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+          <Settings className="h-4.5 w-4.5 text-muted-foreground" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Settings</h1>
+          <p className="text-sm text-muted-foreground">
             Manage your account and application preferences
           </p>
         </div>
@@ -46,13 +47,13 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold">
+              <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary text-lg font-display font-semibold">
                 {user?.name?.charAt(0) || "U"}
               </div>
               <div>
-                <div className="font-semibold text-lg">{user?.name || "Guest"}</div>
-                <div className="text-muted-foreground">{user?.email}</div>
-                <Badge className="mt-1 capitalize">{user?.role}</Badge>
+                <div className="font-semibold">{user?.name || "Guest"}</div>
+                <div className="text-sm text-muted-foreground">{user?.email}</div>
+                <Badge className="mt-1.5 capitalize">{user?.role}</Badge>
               </div>
             </div>
             <div className="pt-4 border-t">
@@ -83,14 +84,20 @@ export default function SettingsPage() {
               { label: "Weekly reports", description: "Summary of portfolio changes", enabled: true },
               { label: "Benchmark alerts", description: "Significant changes in rankings", enabled: false },
             ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-2">
+              <div key={item.label} className="flex items-center justify-between py-2.5">
                 <div>
-                  <div className="font-medium">{item.label}</div>
-                  <div className="text-sm text-muted-foreground">{item.description}</div>
+                  <div className="text-sm font-medium">{item.label}</div>
+                  <div className="text-xs text-muted-foreground">{item.description}</div>
                 </div>
-                <Badge variant={item.enabled ? "default" : "secondary"}>
-                  {item.enabled ? "On" : "Off"}
-                </Badge>
+                <div className={cn(
+                  "h-5 w-9 rounded-full relative transition-colors cursor-default",
+                  item.enabled ? "bg-primary" : "bg-muted-foreground/20"
+                )}>
+                  <div className={cn(
+                    "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+                    item.enabled ? "translate-x-4" : "translate-x-0.5"
+                  )} />
+                </div>
               </div>
             ))}
             <p className="text-xs text-muted-foreground pt-2 border-t">
@@ -111,17 +118,17 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2">
-                <span>Internal Portfolio Data</span>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+                <span className="text-sm">Internal Portfolio Data</span>
                 <Badge variant="high">Full Access</Badge>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <span>External Benchmark Data</span>
+              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+                <span className="text-sm">External Benchmark Data</span>
                 <Badge variant="high">Full Access</Badge>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <span>Admin Functions</span>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-sm">Admin Functions</span>
                 <Badge variant={user?.role === "admin" ? "high" : "low"}>
                   {user?.role === "admin" ? "Enabled" : "Disabled"}
                 </Badge>
@@ -177,19 +184,19 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <Button variant="outline" className="flex-1 h-20 flex-col">
-                <span className="text-2xl mb-1">☀️</span>
-                <span>Light</span>
-              </Button>
-              <Button variant="outline" className="flex-1 h-20 flex-col" disabled>
-                <span className="text-2xl mb-1">🌙</span>
-                <span>Dark</span>
-              </Button>
-              <Button variant="outline" className="flex-1 h-20 flex-col" disabled>
-                <span className="text-2xl mb-1">💻</span>
-                <span>System</span>
-              </Button>
+            <div className="flex gap-3">
+              <button className="flex-1 h-16 rounded-lg border-2 border-primary bg-primary/5 flex flex-col items-center justify-center gap-1 transition-colors">
+                <div className="h-4 w-8 rounded bg-white border border-border" />
+                <span className="text-xs font-medium">Light</span>
+              </button>
+              <button className="flex-1 h-16 rounded-lg border border-border flex flex-col items-center justify-center gap-1 opacity-50 cursor-default">
+                <div className="h-4 w-8 rounded bg-slate-800 border border-slate-700" />
+                <span className="text-xs text-muted-foreground">Dark</span>
+              </button>
+              <button className="flex-1 h-16 rounded-lg border border-border flex flex-col items-center justify-center gap-1 opacity-50 cursor-default">
+                <div className="h-4 w-8 rounded bg-gradient-to-r from-white to-slate-800 border border-border" />
+                <span className="text-xs text-muted-foreground">System</span>
+              </button>
             </div>
             <p className="text-xs text-muted-foreground mt-4">
               Dark mode and system preference will be available in Phase 1

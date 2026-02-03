@@ -4,62 +4,80 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warm, academic-inspired palette */
+    --background: 40 20% 98%;
+    --foreground: 220 20% 14%;
+    --card: 40 25% 99%;
+    --card-foreground: 220 20% 14%;
+    --popover: 40 25% 99%;
+    --popover-foreground: 220 20% 14%;
+
+    /* Deep slate-teal primary instead of generic dark blue */
+    --primary: 200 35% 22%;
+    --primary-foreground: 40 25% 97%;
+
+    /* Warm stone secondary */
+    --secondary: 35 18% 93%;
+    --secondary-foreground: 220 20% 20%;
+
+    /* Muted warm grays */
+    --muted: 35 14% 93%;
+    --muted-foreground: 220 10% 46%;
+
+    /* Accent: subtle warm teal */
+    --accent: 180 20% 93%;
+    --accent-foreground: 200 35% 22%;
+
+    /* Copper/terracotta destructive (warmer than pure red) */
+    --destructive: 8 65% 52%;
+    --destructive-foreground: 40 25% 97%;
+
+    /* Warm borders */
+    --border: 35 16% 88%;
+    --input: 35 16% 88%;
+    --ring: 200 35% 40%;
     --radius: 0.5rem;
 
-    /* Internal data - Blue tones (trustworthy, proprietary) */
-    --internal: 221 83% 53%;
+    /* Internal data - Deep indigo/teal (trustworthy, proprietary) */
+    --internal: 210 60% 42%;
     --internal-foreground: 210 40% 98%;
 
-    /* External data - Green tones (external, benchmark) */
-    --external: 142 76% 36%;
-    --external-foreground: 210 40% 98%;
+    /* External data - Sage green (grounded, external) */
+    --external: 152 40% 38%;
+    --external-foreground: 152 10% 98%;
+
+    /* Accent highlights */
+    --copper: 20 60% 55%;
+    --copper-foreground: 40 25% 97%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 220 18% 8%;
+    --foreground: 40 15% 92%;
+    --card: 220 16% 11%;
+    --card-foreground: 40 15% 92%;
+    --popover: 220 16% 11%;
+    --popover-foreground: 40 15% 92%;
+    --primary: 185 35% 65%;
+    --primary-foreground: 220 18% 8%;
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 40 15% 92%;
+    --muted: 220 14% 16%;
+    --muted-foreground: 220 10% 58%;
+    --accent: 185 20% 16%;
+    --accent-foreground: 185 35% 65%;
+    --destructive: 8 55% 42%;
+    --destructive-foreground: 40 15% 92%;
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 185 35% 50%;
 
-    --internal: 217 91% 60%;
-    --internal-foreground: 222.2 84% 4.9%;
-
-    --external: 142 71% 45%;
-    --external-foreground: 222.2 84% 4.9%;
+    --internal: 210 55% 58%;
+    --internal-foreground: 220 18% 8%;
+    --external: 152 40% 48%;
+    --external-foreground: 220 18% 8%;
+    --copper: 20 50% 58%;
+    --copper-foreground: 220 18% 8%;
   }
 }
 
@@ -68,6 +86,97 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
+
+  /* Tabular numbers for data display */
+  .font-data {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+}
+
+@layer utilities {
+  /* Subtle noise texture for backgrounds */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+  }
+
+  /* Dot grid pattern for empty areas */
+  .bg-dots {
+    background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Staggered fade-in animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out forwards;
+    opacity: 0;
+  }
+
+  /* Card hover lift effect */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* Selection color */
+::selection {
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--foreground));
 }
