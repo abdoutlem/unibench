@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
             <p className="text-xs text-muted-foreground">
               {store.result.total_rows} row{store.result.total_rows !== 1 ? "s" : ""} returned
               {store.result.metadata?.aggregation && (
-                <> &middot; Aggregation: {store.result.metadata.aggregation}</>
+                <> &middot; Aggregation: {store.result.metadata.aggregation === "none" ? "None (Raw Values)" : store.result.metadata.aggregation}</>
               )}
             </p>
           </div>

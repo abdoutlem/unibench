@@ -11,6 +11,7 @@ export type ChartType =
   | "table";
 
 export type AggregationType =
+  | "none"
   | "sum"
   | "average"
   | "median"

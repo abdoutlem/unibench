@@ -9,6 +9,7 @@ interface Props {
 }
 
 const AGGREGATIONS: { value: AggregationType; label: string }[] = [
+  { value: "none", label: "None (Raw Values)" },
   { value: "sum", label: "Sum" },
   { value: "average", label: "Average" },
   { value: "median", label: "Median" },

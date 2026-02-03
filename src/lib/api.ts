@@ -538,6 +538,23 @@ class ApiClient {
     );
   }
 
+  // ── Metabase ──
+
+  async getMetabaseEmbedToken(dashboardId?: number): Promise<{
+    token: string;
+    dashboard_id: number;
+    expires_in: number;
+    instance_url: string;
+  }> {
+    const params = dashboardId ? `?dashboard_id=${dashboardId}` : "";
+    return this.request<{
+      token: string;
+      dashboard_id: number;
+      expires_in: number;
+      instance_url: string;
+    }>(`/metabase/embed-token${params}`);
+  }
+
   // ── Reports ──
 
   async saveReport(report: any): Promise<any> {

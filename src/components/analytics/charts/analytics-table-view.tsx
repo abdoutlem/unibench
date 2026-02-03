@@ -103,6 +103,8 @@ export function AnalyticsTableView({ data }: Props) {
                       {val != null
                         ? col.type === "number"
                           ? Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                          : col.type === "date"
+                          ? new Date(String(val)).toLocaleDateString()
                           : String(val)
                         : "-"}
                     </td>

@@ -1,6 +1,6 @@
 """Application configuration."""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 from typing import Optional, Union
 import json
@@ -8,6 +8,12 @@ import json
 
 class Settings(BaseSettings):
     """Application settings."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # Ignore extra environment variables (like NEXT_PUBLIC_* for frontend)
+    )
 
     # API
     api_title: str = "UniBench Extraction API"
@@ -56,10 +62,11 @@ class Settings(BaseSettings):
     # n8n Integration
     n8n_webhook_url: Optional[str] = None  # n8n webhook URL for sending documents/URLs
     n8n_timeout: int = 300  # Timeout in seconds for n8n processing (5 minutes default)
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    
+    # Metabase Integration
+    metabase_instance_url: Optional[str] = None  # Metabase instance URL (e.g., http://localhost:3001)
+    metabase_secret_key: Optional[str] = None  # Metabase embedding secret key
+    metabase_dashboard_id: Optional[int] = None  # Default dashboard ID to embed
 
 
 settings = Settings()

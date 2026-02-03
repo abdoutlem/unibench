@@ -20,7 +20,7 @@ class ExploreRequest(BaseModel):
     metric_ids: List[str] = Field(..., min_length=1, description="One or more metric IDs to query")
     group_by: List[str] = Field(default_factory=list, description="Dimensions to group by (fiscal_year, entity_id, geography, etc.)")
     filters: ExploreFilters = Field(default_factory=ExploreFilters)
-    aggregation: str = Field("sum", description="Aggregation function: sum, average, median, min, max, count, latest")
+    aggregation: str = Field("sum", description="Aggregation function: none, sum, average, median, min, max, count, latest. Use 'none' to return raw values without aggregation.")
     sort_by: Optional[str] = Field("value", description="Column to sort by")
     sort_order: str = Field("desc", description="Sort order: asc or desc")
     limit: int = Field(500, ge=1, le=10000, description="Maximum number of rows to return")

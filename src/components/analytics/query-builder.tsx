@@ -65,7 +65,12 @@ export function QueryBuilder() {
       id: 3,
       title: "Summarize",
       icon: Calculator,
-      summary: () => store.aggregation.charAt(0).toUpperCase() + store.aggregation.slice(1),
+      summary: () => {
+        if (store.aggregation === "none") {
+          return "None (Raw Values)";
+        }
+        return store.aggregation.charAt(0).toUpperCase() + store.aggregation.slice(1);
+      },
     },
     {
       id: 4,
