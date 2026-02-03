@@ -1,6 +1,8 @@
 """SQLite-based glossary loader."""
 
 import logging
+import uuid
+import json
 from typing import Dict, List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -75,14 +77,37 @@ class GlossaryLoaderDB:
                     aliases = db.query(DBMetricAlias).filter(
                         DBMetricAlias.metric_id == db_metric.metric_id
                     ).all()
-                    semantic_variations = [alias.source_metric_name for alias in aliases]
+                    semantic_variations = [alias.source_metric_name for alias in aliases if alias.source_metric_name]
 
                     # Convert to GlossaryMetric
+                    canonical_name = db_metric.canonical_name or ""
+                    
+                    # Load dimensions and entities from JSON
+                    dimensions = []
+                    if db_metric.dimensions:
+                        if isinstance(db_metric.dimensions, list):
+                            dimensions = db_metric.dimensions
+                        elif isinstance(db_metric.dimensions, str):
+                            try:
+                                dimensions = json.loads(db_metric.dimensions)
+                            except:
+                                dimensions = []
+                    
+                    entities = ["Institution"]  # Default
+                    if db_metric.entities:
+                        if isinstance(db_metric.entities, list):
+                            entities = db_metric.entities
+                        elif isinstance(db_metric.entities, str):
+                            try:
+                                entities = json.loads(db_metric.entities)
+                            except:
+                                entities = ["Institution"]
+                    
                     glossary_metric = GlossaryMetric(
                         id=db_metric.metric_id,
                         domain=MetricDomain(db_metric.category) if db_metric.category else MetricDomain.FINANCE,
-                        name=db_metric.canonical_name,
-                        canonical_name=db_metric.canonical_name,
+                        name=canonical_name,  # Use canonical_name as name if name is not stored separately
+                        canonical_name=canonical_name,
                         description=db_metric.description or "",
                         calculation_logic=db_metric.calculation_logic or "",
                         data_owner=db_metric.data_owner or "",
@@ -91,10 +116,12 @@ class GlossaryLoaderDB:
                         unit=db_metric.unit or "",
                         semantic_variations=semantic_variations,
                         validation_rules=[],
-                        entities=["Institution"],  # Default - we'll need to link this properly
-                        dimensions=[],  # We'll need to link this properly
+                        entities=entities,
+                        dimensions=dimensions,
                         version=db_metric.version or "1.0",
                         effective_date=db_metric.effective_date.isoformat() if db_metric.effective_date else (db_metric.created_at.date().isoformat() if db_metric.created_at else datetime.utcnow().date().isoformat()),
+                        created_at=db_metric.created_at if db_metric.created_at else datetime.utcnow(),
+                        updated_at=db_metric.updated_at if db_metric.updated_at else datetime.utcnow(),
                         is_active=bool(db_metric.is_active) if db_metric.is_active is not None else True
                     )
                     self._metrics_cache[db_metric.metric_id] = glossary_metric
@@ -171,92 +198,147 @@ class GlossaryLoaderDB:
 
     def save_metric(self, metric: GlossaryMetric) -> bool:
         """Save a metric to the database."""
+        db = None
         try:
             db = get_db_session()
-            try:
-                # Check if metric exists
-                db_metric = db.query(DBMetricDefinition).filter(
-                    DBMetricDefinition.metric_id == metric.id
-                ).first()
+            
+            # Check if metric exists
+            db_metric = db.query(DBMetricDefinition).filter(
+                DBMetricDefinition.metric_id == metric.id
+            ).first()
 
-                if db_metric:
-                    # Update existing
-                    db_metric.canonical_name = metric.canonical_name
-                    db_metric.description = metric.description
-                    db_metric.unit = metric.unit
-                    db_metric.category = metric.domain.value
-                    db_metric.calculation_logic = metric.calculation_logic
-                    db_metric.data_owner = metric.data_owner
-                    db_metric.source = metric.source
-                    db_metric.update_frequency = metric.update_frequency
-                    db_metric.version = metric.version
-                    db_metric.effective_date = datetime.strptime(metric.effective_date, "%Y-%m-%d").date() if metric.effective_date else None
-                    db_metric.is_active = 1 if metric.is_active else 0
-                    db_metric.updated_at = datetime.utcnow()
+            if db_metric:
+                # Update existing metric - preserve created_at
+                db_metric.canonical_name = metric.canonical_name or metric.name
+                db_metric.description = metric.description
+                db_metric.unit = metric.unit
+                db_metric.category = metric.domain.value
+                db_metric.calculation_logic = metric.calculation_logic
+                db_metric.data_owner = metric.data_owner
+                db_metric.source = metric.source
+                db_metric.update_frequency = metric.update_frequency
+                db_metric.version = metric.version
+                
+                # Parse effective_date safely
+                if metric.effective_date:
+                    try:
+                        if isinstance(metric.effective_date, str):
+                            db_metric.effective_date = datetime.strptime(metric.effective_date, "%Y-%m-%d").date()
+                        else:
+                            db_metric.effective_date = metric.effective_date
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Could not parse effective_date '{metric.effective_date}': {e}")
+                        db_metric.effective_date = None
                 else:
-                    # Create new
-                    value_type = ValueType.NUMBER
-                    if metric.unit == "percentage":
+                    db_metric.effective_date = None
+                
+                db_metric.is_active = 1 if metric.is_active else 0
+                db_metric.updated_at = datetime.utcnow()
+                
+                # Save dimensions and entities as JSON
+                db_metric.dimensions = metric.dimensions if metric.dimensions else []
+                db_metric.entities = metric.entities if metric.entities else []
+                
+                # Preserve original created_at if it exists, otherwise keep current
+                if metric.created_at:
+                    if isinstance(metric.created_at, datetime):
+                        db_metric.created_at = metric.created_at
+                    elif isinstance(metric.created_at, str):
+                        try:
+                            db_metric.created_at = datetime.fromisoformat(metric.created_at.replace('Z', '+00:00'))
+                        except:
+                            pass  # Keep existing created_at if parsing fails
+            else:
+                # Create new metric
+                value_type = ValueType.NUMBER
+                if metric.unit:
+                    unit_lower = metric.unit.lower()
+                    if "percentage" in unit_lower or "%" in unit_lower:
                         value_type = ValueType.PERCENTAGE
-                    elif metric.unit == "count":
+                    elif "count" in unit_lower or unit_lower in ["integer", "int"]:
                         value_type = ValueType.INTEGER
 
-                    effective_date = None
-                    if metric.effective_date:
-                        try:
+                effective_date = None
+                if metric.effective_date:
+                    try:
+                        if isinstance(metric.effective_date, str):
                             effective_date = datetime.strptime(metric.effective_date, "%Y-%m-%d").date()
+                        else:
+                            effective_date = metric.effective_date
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Could not parse effective_date '{metric.effective_date}': {e}")
+
+                # Use created_at from metric if provided, otherwise use current time
+                created_at = datetime.utcnow()
+                if metric.created_at:
+                    if isinstance(metric.created_at, datetime):
+                        created_at = metric.created_at
+                    elif isinstance(metric.created_at, str):
+                        try:
+                            created_at = datetime.fromisoformat(metric.created_at.replace('Z', '+00:00'))
                         except:
-                            pass
+                            pass  # Use current time if parsing fails
 
-                    db_metric = DBMetricDefinition(
-                        metric_id=metric.id,
-                        canonical_name=metric.canonical_name,
-                        description=metric.description,
-                        unit=metric.unit,
-                        value_type=value_type,
-                        default_aggregation=AggregationType.SUM,
-                        category=metric.domain.value,
-                        calculation_logic=metric.calculation_logic,
-                        data_owner=metric.data_owner,
-                        source=metric.source,
-                        update_frequency=metric.update_frequency,
-                        version=metric.version,
-                        effective_date=effective_date,
-                        is_active=1 if metric.is_active else 0,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    db.add(db_metric)
+                db_metric = DBMetricDefinition(
+                    metric_id=metric.id,
+                    canonical_name=metric.canonical_name or metric.name,
+                    description=metric.description,
+                    unit=metric.unit,
+                    value_type=value_type,
+                    default_aggregation=AggregationType.SUM,
+                    category=metric.domain.value,
+                    calculation_logic=metric.calculation_logic,
+                    data_owner=metric.data_owner,
+                    source=metric.source,
+                    update_frequency=metric.update_frequency,
+                    version=metric.version,
+                    effective_date=effective_date,
+                    is_active=1 if metric.is_active else 0,
+                    dimensions=metric.dimensions if metric.dimensions else [],
+                    entities=metric.entities if metric.entities else [],
+                    created_at=created_at,
+                    updated_at=datetime.utcnow()
+                )
+                db.add(db_metric)
 
-                # Update aliases (semantic variations)
-                # Delete existing aliases
-                db.query(DBMetricAlias).filter(
-                    DBMetricAlias.metric_id == metric.id
-                ).delete()
+            # Update aliases (semantic variations)
+            # Delete existing aliases
+            db.query(DBMetricAlias).filter(
+                DBMetricAlias.metric_id == metric.id
+            ).delete()
 
-                # Add new aliases
-                for variation in metric.semantic_variations:
+            # Add new aliases
+            for variation in metric.semantic_variations:
+                if variation and variation.strip():  # Only add non-empty variations
                     alias = DBMetricAlias(
                         alias_id=str(uuid.uuid4()),
                         metric_id=metric.id,
                         source_system="internal",
-                        source_metric_name=variation,
+                        source_metric_name=variation.strip(),
                         confidence=0.9,
                         created_at=datetime.utcnow()
                     )
                     db.add(alias)
 
-                db.commit()
-                logger.info(f"Metric saved to database: {metric.id}")
+            db.commit()
+            logger.info(f"Metric saved to database: {metric.id} ({metric.canonical_name or metric.name})")
 
-                # Update cache
-                self._metrics_cache[metric.id] = metric
-                return True
-            finally:
-                db.close()
+            # Update cache with the saved metric (ensure timestamps are set)
+            metric.updated_at = datetime.utcnow()
+            if not metric.created_at and db_metric.created_at:
+                metric.created_at = db_metric.created_at
+            self._metrics_cache[metric.id] = metric
+            
+            return True
+            
         except Exception as e:
+            if db:
+                db.rollback()
             logger.error(f"Error saving metric to database: {e}", exc_info=True)
             return False
+        finally:
+            if db:
+                db.close()
 
     def save_dimension(self, dimension: DimensionDefinition) -> bool:
         """Save a dimension definition to the database."""

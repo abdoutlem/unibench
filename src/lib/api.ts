@@ -70,24 +70,16 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:65',message:'API request starting',data:{url,endpoint,method:options.method||'GET'},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     const response = await fetch(url, {
       ...options,
       headers: {
         ...options.headers,
       },
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:73',message:'API response received',data:{status:response.status,statusText:response.statusText,ok:response.ok,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
 
-    if (!response.ok) {
+    // Accept 200-202 as success (202 Accepted means request accepted for processing)
+    if (!response.ok && response.status !== 202) {
       const error = await response.json().catch(() => ({ detail: response.statusText }));
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:76',message:'API request failed',data:{status:response.status,error:error.detail||response.statusText,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       throw new Error(error.detail || `HTTP error! status: ${response.status}`);
     }
 
@@ -335,33 +327,16 @@ class ApiClient {
     file: File,
     folderId?: string
   ): Promise<UploadedFile> {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:274',message:'uploadFile called',data:{filename:file.name,size:file.size,hasFolderId:!!folderId},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     const formData = new FormData();
     formData.append("file", file);
     if (folderId) {
       formData.append("folder_id", folderId);
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:281',message:'FormData created, about to send request',data:{endpoint:'/upload',hasFile:true,hasFolderId:!!folderId},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
 
-    try {
-      const result = await this.request<UploadedFile>("/upload", {
-        method: "POST",
-        body: formData,
-      });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:290',message:'Upload successful',data:{fileId:result.id,filename:result.filename},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      return result;
-    } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/1295256a-3956-4b3e-9133-df5a5a55781f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:293',message:'Upload failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      throw error;
-    }
+    return this.request<UploadedFile>("/upload", {
+      method: "POST",
+      body: formData,
+    });
   }
 
   /**
@@ -410,17 +385,95 @@ class ApiClient {
   }
 
   /**
-   * Process URL through n8n
+   * Process URL - saves datasource and triggers async processing (fire-and-forget)
    */
-  async processUrl(url: string, entityId?: string): Promise<any> {
+  async processUrl(
+    url: string,
+    name?: string,
+    description?: string,
+    entityId?: string
+  ): Promise<any> {
     const formData = new FormData();
     formData.append("url", url);
+    if (name) {
+      formData.append("name", name);
+    }
+    if (description) {
+      formData.append("description", description);
+    }
     if (entityId) {
       formData.append("entity_id", entityId);
     }
     return this.request<any>("/upload/url", {
       method: "POST",
       body: formData,
+    });
+  }
+
+  /**
+   * Data source API methods
+   */
+  async createDataSource(datasource: {
+    name: string;
+    type: "document" | "url" | "api" | "webhook";
+    description?: string;
+    url?: string;
+    document_ids?: string[];
+    webhook_url?: string;
+    api_endpoint?: string;
+    update_frequency?: string;
+    auto_extract?: boolean;
+    extraction_rules?: string[];
+    extraction_method?: string;
+    enabled?: boolean;
+    tags?: string[];
+    notes?: string;
+  }): Promise<any> {
+    return this.request<any>("/datasources", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(datasource),
+    });
+  }
+
+  async listDataSources(params?: {
+    type?: "document" | "url" | "api" | "webhook";
+    status?: "pending" | "processing" | "active" | "inactive" | "error" | "paused";
+    enabled?: boolean;
+  }): Promise<any[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.type) queryParams.append("type", params.type);
+    if (params?.status) queryParams.append("status", params.status);
+    if (params?.enabled !== undefined) queryParams.append("enabled", params.enabled.toString());
+    
+    const query = queryParams.toString();
+    return this.request<any[]>(`/datasources${query ? `?${query}` : ""}`);
+  }
+
+  async getDataSource(datasourceId: string): Promise<any> {
+    return this.request<any>(`/datasources/${datasourceId}`);
+  }
+
+  async updateDataSourceStatus(
+    datasourceId: string,
+    status: "pending" | "processing" | "active" | "inactive" | "error" | "paused",
+    errorMessage?: string,
+    observationsProcessed?: number,
+    observationsFailed?: number
+  ): Promise<any> {
+    return this.request<any>(`/datasources/${datasourceId}/status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status,
+        error_message: errorMessage,
+        observations_processed: observationsProcessed,
+        observations_failed: observationsFailed,
+      }),
     });
   }
 
@@ -587,6 +640,36 @@ class ApiClient {
   async deleteReport(reportId: string): Promise<void> {
     await this.request(`/reports/${reportId}`, { method: "DELETE" });
   }
+
+  // ── Validation ──
+
+  async validateExploreResult(query: any): Promise<any> {
+    return this.request<any>("/validation/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(query),
+    });
+  }
+
+  async checkDataIntegrity(): Promise<any> {
+    return this.request<any>("/validation/integrity");
+  }
+
+  // ── Chat ──
+
+  async chatQuery(
+    message: string,
+    conversationHistory: Array<{ role: string; content: string }>
+  ): Promise<any> {
+    return this.request<any>("/chat/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        conversation_history: conversationHistory,
+      }),
+    });
+  }
 }
 
 export interface UploadedFile {
@@ -597,6 +680,8 @@ export interface UploadedFile {
   upload_path: string;
   uploaded_at: string;
   status: string;
+  source_id?: string;  // Datasource ID for tracking
+  datasource_id?: string;  // Keep for backward compatibility
 }
 
 export const apiClient = new ApiClient();

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     api_title: str = "UniBench Extraction API"
     api_version: str = "0.1.0"
     api_prefix: str = "/api/v1"
+    api_base_url: str = "http://localhost:8000"  # Base URL for API (used in webhook callbacks)
     debug: bool = True
 
     # CORS

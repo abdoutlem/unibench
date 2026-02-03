@@ -292,11 +292,19 @@ class GlossaryLoader:
             found = False
             for i, existing_metric in enumerate(metrics_list):
                 if existing_metric.get("id") == metric.id:
+                    # Preserve created_at from existing metric if not provided in new metric
+                    if "created_at" not in metric_dict or not metric_dict.get("created_at"):
+                        existing_created_at = existing_metric.get("created_at")
+                        if existing_created_at:
+                            metric_dict["created_at"] = existing_created_at
                     metrics_list[i] = metric_dict
                     found = True
                     break
             
             if not found:
+                # Ensure created_at is set for new metrics
+                if "created_at" not in metric_dict or not metric_dict.get("created_at"):
+                    metric_dict["created_at"] = datetime.utcnow().isoformat()
                 metrics_list.append(metric_dict)
             
             data["metrics"] = metrics_list

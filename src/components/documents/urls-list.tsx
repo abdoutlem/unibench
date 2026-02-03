@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,6 +122,7 @@ const statusConfig: Record<
   inactive: { label: "Inactive", variant: "secondary", icon: Pause },
   error: { label: "Error", variant: "destructive", icon: AlertCircle },
   pending: { label: "Pending", variant: "secondary", icon: Clock },
+  processing: { label: "Processing", variant: "secondary", icon: RefreshCw },
   paused: { label: "Paused", variant: "outline", icon: Pause },
 };
 
@@ -141,7 +142,7 @@ interface UrlsListProps {
 }
 
 export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
-  const [urls, setUrls] = useState<DataSource[]>(mockUrls);
+  const [urls, setUrls] = useState<DataSource[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newUrl, setNewUrl] = useState("");
@@ -150,6 +151,51 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load datasources on mount
+  useEffect(() => {
+    loadDataSources();
+  }, []);
+
+  const loadDataSources = async () => {
+    try {
+      setIsLoading(true);
+      const datasources = await apiClient.listDataSources({ type: "url" });
+      // Convert backend format to frontend format
+      const convertedUrls: DataSource[] = datasources.map((ds: any) => ({
+        id: ds.id,
+        name: ds.name,
+        type: ds.type,
+        description: ds.description,
+        status: ds.status,
+        updateFrequency: ds.update_frequency,
+        lastUpdate: ds.last_update,
+        nextUpdate: ds.next_update,
+        autoExtract: ds.auto_extract,
+        url: ds.url,
+        createdAt: ds.created_at,
+        updatedAt: ds.updated_at,
+        createdBy: ds.created_by,
+        lastSuccess: ds.last_success,
+        lastError: ds.last_error,
+        errorCount: ds.error_count,
+        successCount: ds.success_count,
+        extractionRules: ds.extraction_rules || [],
+        extractionMethod: ds.extraction_method || "HYBRID",
+        enabled: ds.enabled,
+        tags: ds.tags || [],
+        notes: ds.notes,
+      }));
+      setUrls(convertedUrls);
+    } catch (err) {
+      console.error("Error loading datasources:", err);
+      // Fallback to mock data if API fails
+      setUrls(mockUrls);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredUrls = urls.filter(
     (url) =>
@@ -160,13 +206,18 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Never";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Invalid date";
+    }
   };
 
   return (
@@ -193,6 +244,12 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
           <CardTitle>URL Data Sources</CardTitle>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading datasources...</span>
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -215,7 +272,7 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
                 </TableRow>
               ) : (
                 filteredUrls.map((url) => {
-                  const statusInfo = statusConfig[url.status];
+                  const statusInfo = statusConfig[url.status] || statusConfig.pending;
                   const StatusIcon = statusInfo.icon;
                   const successRate =
                     url.successCount + url.errorCount > 0
@@ -327,6 +384,7 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
               )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -408,38 +466,23 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
                   setError(null);
                   setSuccess(null);
 
-                  const result = await apiClient.processUrl(newUrl.trim());
+                  console.log("Processing URL:", newUrl.trim());
+                  const result = await apiClient.processUrl(
+                    newUrl.trim(),
+                    newUrlName || undefined,
+                    newUrlDescription || undefined
+                  );
+                  console.log("URL processing result:", result);
 
-                  if (result.status === "success") {
+                  // Show success if we get 202 Accepted with source_id (or 200 with success status)
+                  if ((result.status === "accepted" || result.status === "success") && (result.source_id || result.datasource_id)) {
+                    const sourceId = result.source_id || result.datasource_id;
                     setSuccess(
-                      `Successfully processed URL! ${result.observations_processed || 0} observations processed.`
+                      `URL datasource created successfully! Source ID: ${sourceId}. Processing will be handled by external system.`
                     );
 
-                    // Add to URLs list
-                    const newDataSource: DataSource = {
-                      id: `url-${Date.now()}`,
-                      name: newUrlName || newUrl,
-                      type: "url",
-                      description: newUrlDescription || undefined,
-                      status: "active",
-                      updateFrequency: "manual",
-                      url: newUrl,
-                      lastUpdate: new Date().toISOString(),
-                      nextUpdate: undefined,
-                      autoExtract: true,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                      createdBy: "current-user",
-                      errorCount: result.observations_failed || 0,
-                      successCount: result.observations_processed || 0,
-                      lastSuccess: new Date().toISOString(),
-                      extractionRules: [],
-                      extractionMethod: "HYBRID",
-                      enabled: true,
-                      tags: [],
-                    };
-
-                    setUrls([...urls, newDataSource]);
+                    // Reload datasources to get the new one
+                    await loadDataSources();
 
                     // Close dialog after 2 seconds
                     setTimeout(() => {
@@ -451,10 +494,29 @@ export function UrlsList({ onUrlClick, onConfigure }: UrlsListProps) {
                       setSuccess(null);
                     }, 2000);
                   } else {
-                    setError(result.message || "Failed to process URL");
+                    // Handle different error cases with more detail
+                    let errorMessage = "Failed to process URL";
+                    if (result.message) {
+                      errorMessage = result.message;
+                    } else if (result.result) {
+                      if (result.result.error) {
+                        errorMessage = `Error: ${result.result.error}`;
+                      } else if (result.result.status === "timeout") {
+                        errorMessage = "Request timed out. Please try again.";
+                      } else if (result.result.status === "error") {
+                        errorMessage = "An error occurred while processing the URL.";
+                      }
+                    } else if (result.status === "error") {
+                      errorMessage = "Failed to process URL.";
+                    } else if (!result.source_id && !result.datasource_id) {
+                      errorMessage = "Failed to create datasource. No source ID returned.";
+                    }
+                    setError(errorMessage);
                   }
                 } catch (e) {
-                  setError(e instanceof Error ? e.message : "Failed to process URL");
+                  console.error("Error processing URL:", e);
+                  const errorMessage = e instanceof Error ? e.message : "Failed to process URL";
+                  setError(errorMessage);
                 } finally {
                   setIsProcessing(false);
                 }

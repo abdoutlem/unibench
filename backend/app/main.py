@@ -53,6 +53,19 @@ async def startup_event():
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}", exc_info=True)
+
+    # Sync glossary YAML → metric_definitions, then seed observations
+    try:
+        from app.db.database import get_db_session
+        from seed_database import sync_glossary_to_db, seed_database
+        db = get_db_session()
+        try:
+            sync_glossary_to_db(db)
+            seed_database(db)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to seed database: {e}", exc_info=True)
     
     # Create upload directory if it doesn't exist
     upload_dir = Path(settings.upload_dir)

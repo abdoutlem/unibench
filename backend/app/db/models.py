@@ -67,6 +67,8 @@ class MetricDefinition(Base):
     version = Column(Text, default="1.0")
     effective_date = Column(Date)
     is_active = Column(Integer, default=1)  # SQLite doesn't have boolean, use 0/1
+    dimensions = Column(SQLiteJSON)  # Store dimensions as JSON array (e.g., ["FiscalYear", "DocumentType"])
+    entities = Column(SQLiteJSON)  # Store entities as JSON array (e.g., ["Institution"])
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

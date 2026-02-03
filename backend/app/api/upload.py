@@ -32,13 +32,20 @@ class UploadedFileResponse(BaseModel):
     upload_path: str
     uploaded_at: str
     status: str = "uploaded"
+    source_id: Optional[str] = None  # Datasource ID for tracking
+    datasource_id: Optional[str] = None  # Keep for backward compatibility
 
 
-@router.post("", response_model=UploadedFileResponse)
+@router.post("", response_model=UploadedFileResponse, status_code=202)
 async def upload_file(
     file: UploadFile = File(...),
     folder_id: Optional[str] = Form(None)
 ):
+    """Upload a file - saves file and datasource, returns immediately (202 Accepted).
+    
+    External systems should call /api/v1/datasources/status-update with the source_id
+    when processing is complete.
+    """
     """Upload a file to the server."""
     # #region agent log
     import json
@@ -138,30 +145,69 @@ async def upload_file(
     
     logger.info(f"File uploaded successfully: {file_id} ({file.filename})")
     
-    # Send to n8n if configured
-    n8n_result = None
-    if settings.n8n_webhook_url:
-        try:
-            n8n_result = await _send_to_n8n(
-                file_path=file_path,
-                filename=file.filename,
-                file_id=file_id,
-                file_type=file_ext
-            )
-            logger.info(f"n8n processing completed for {file_id}")
-        except Exception as e:
-            logger.error(f"Error sending to n8n: {e}", exc_info=True)
-            # Don't fail the upload if n8n fails
+    # Create datasource for the uploaded file
+    datasource_id = None
+    try:
+        from app.api.datasources import datasources_db
+        from app.models.datasource import DataSource, DataSourceType, DataSourceStatus, UpdateFrequency
+        
+        datasource_id = f"ds-{uuid.uuid4().hex[:12]}"
+        datasource = DataSource(
+            id=datasource_id,
+            name=file.filename,
+            type=DataSourceType.DOCUMENT,
+            description=f"Uploaded document: {file.filename}",
+            status=DataSourceStatus.PENDING,
+            document_ids=[file_id],
+            update_frequency=UpdateFrequency.MANUAL,
+            auto_extract=True,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            created_by="system"
+        )
+        datasources_db[datasource_id] = datasource
+        logger.info(f"Created datasource {datasource_id} for file: {file_id}. Status: PENDING. External system should update status via /datasources/status-update")
+        
+        # Send POST request to external webhook with source_id (fire-and-forget)
+        if settings.n8n_webhook_url:
+            async def notify_external_system():
+                try:
+                    payload = {
+                        "source_id": datasource_id,
+                        "source_type": "document",
+                        "file_id": file_id,
+                        "filename": file.filename,
+                        "file_type": file_ext,
+                        "file_path": str(file_path),
+                        "name": file.filename,
+                        "description": f"Uploaded document: {file.filename}",
+                        "status": "pending",
+                        "status_update_url": f"{settings.api_base_url}{settings.api_prefix}/datasources/status-update"
+                    }
+                    async with httpx.AsyncClient(timeout=10) as client:
+                        await client.post(
+                            settings.n8n_webhook_url,
+                            json=payload,
+                            headers={"Content-Type": "application/json"}
+                        )
+                    logger.info(f"Notified external system about datasource {datasource_id}")
+                except Exception as e:
+                    logger.error(f"Error notifying external system about datasource {datasource_id}: {e}", exc_info=True)
+                    # Don't fail the request if notification fails
+            
+            import asyncio
+            asyncio.create_task(notify_external_system())
+    except Exception as e:
+        logger.error(f"Error creating datasource for file {file_id}: {e}", exc_info=True)
+        # Don't fail the upload if datasource creation fails
     
-    response = UploadedFileResponse(**file_metadata)
-    if n8n_result:
-        # Add n8n processing result to response
-        response_dict = response.model_dump()
-        response_dict["n8n_processed"] = True
-        response_dict["n8n_result"] = n8n_result
-        return UploadedFileResponse(**response_dict)
+    # Return response with source_id (202 Accepted)
+    response_dict = file_metadata.copy()
+    if datasource_id:
+        response_dict["source_id"] = datasource_id
+        response_dict["datasource_id"] = datasource_id  # Keep for backward compatibility
     
-    return response
+    return UploadedFileResponse(**response_dict)
 
 
 @router.post("/upload/batch", response_model=list[UploadedFileResponse])
@@ -408,46 +454,75 @@ async def _send_to_n8n(
         return {"status": "error", "error": str(e)}
 
 
-@router.post("/url", response_model=dict)
+@router.post("/url", response_model=dict, status_code=202)
 async def process_url(
     url: str = Form(...),
-    entity_id: Optional[str] = Form(None)
+    entity_id: Optional[str] = Form(None),
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None)
 ):
-    """Process a URL through n8n."""
-    if not settings.n8n_webhook_url:
-        raise HTTPException(
-            status_code=503,
-            detail="n8n webhook URL not configured. Please set N8N_WEBHOOK_URL in environment."
-        )
+    """Process a URL - saves datasource and returns immediately (202 Accepted).
     
-    try:
-        result = await _send_to_n8n(
-            url=url,
-            file_id=None,
-            filename=None,
-            file_type=None
-        )
+    External systems should call /api/v1/datasources/status-update with the source_id
+    when processing is complete.
+    """
+    import uuid
+    from app.api.datasources import datasources_db
+    from app.models.datasource import DataSource, DataSourceType, DataSourceStatus, UpdateFrequency
+    
+    # Create datasource immediately
+    datasource_id = f"ds-{uuid.uuid4().hex[:12]}"
+    datasource_name = name or url
+    
+    datasource = DataSource(
+        id=datasource_id,
+        name=datasource_name,
+        type=DataSourceType.URL,
+        description=description,
+        status=DataSourceStatus.PENDING,
+        url=url,
+        update_frequency=UpdateFrequency.MANUAL,
+        auto_extract=True,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+        created_by="system"
+    )
+    
+    datasources_db[datasource_id] = datasource
+    logger.info(f"Created datasource {datasource_id} for URL: {url}. Status: PENDING. External system should update status via /datasources/status-update")
+    
+    # Send POST request to external webhook with source_id (fire-and-forget)
+    if settings.n8n_webhook_url:
+        async def notify_external_system():
+            try:
+                payload = {
+                    "source_id": datasource_id,
+                    "source_type": "url",
+                    "url": url,
+                    "name": datasource_name,
+                    "description": description,
+                    "status": "pending",
+                    "status_update_url": f"{settings.api_prefix}/datasources/status-update"
+                }
+                async with httpx.AsyncClient(timeout=10) as client:
+                    await client.post(
+                        settings.n8n_webhook_url,
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                logger.info(f"Notified external system about datasource {datasource_id}")
+            except Exception as e:
+                logger.error(f"Error notifying external system about datasource {datasource_id}: {e}", exc_info=True)
+                # Don't fail the request if notification fails
         
-        if result and result.get("status") == "processed":
-            return {
-                "status": "success",
-                "url": url,
-                "observations_processed": result.get("observations_processed", 0),
-                "observations_failed": result.get("observations_failed", 0),
-                "message": f"Processed {result.get('observations_processed', 0)} observations from URL"
-            }
-        elif result:
-            return {
-                "status": result.get("status", "unknown"),
-                "url": url,
-                "result": result
-            }
-        else:
-            return {
-                "status": "error",
-                "url": url,
-                "message": "Failed to process URL through n8n"
-            }
-    except Exception as e:
-        logger.error(f"Error processing URL: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to process URL: {str(e)}")
+        import asyncio
+        asyncio.create_task(notify_external_system())
+    
+    # Return 202 Accepted immediately with source_id
+    return {
+        "status": "accepted",
+        "source_id": datasource_id,
+        "datasource_id": datasource_id,  # Keep for backward compatibility
+        "message": "URL datasource created. Processing will be handled by external system.",
+        "url": url
+    }

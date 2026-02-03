@@ -4,7 +4,7 @@ import logging
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func, cast, Float, extract, case
+from sqlalchemy import func, cast, Float, extract, case, and_
 from datetime import date
 
 from app.db.database import get_db
@@ -25,10 +25,9 @@ router = APIRouter()
 async def explore_metrics(request: ExploreRequest, db: Session = Depends(get_db)):
     """Execute an analytics explore query with grouping and aggregation."""
     try:
-        # Build the aggregation expression
-        agg_func = _get_agg_func(request.aggregation)
+        is_no_agg = request.aggregation == "none"
 
-        # Start building the query - select grouped columns + aggregated value
+        # Start building the query
         select_columns = []
         group_by_columns = []
         columns_def: List[ColumnDef] = []
@@ -75,27 +74,33 @@ async def explore_metrics(request: ExploreRequest, db: Session = Depends(get_db)
                     group_by_columns.append(od_alias.dimension_value)
                     columns_def.append(ColumnDef(name=dim, type="string"))
 
-        # Add the aggregated value column
-        value_col = agg_func(cast(MetricObservation.value, Float)).label("value")
-        select_columns.append(value_col)
-        columns_def.append(ColumnDef(name="value", type="number"))
+        # Bug fix: handle aggregation "none" – return raw values without agg function
+        if is_no_agg:
+            select_columns.append(cast(MetricObservation.value, Float).label("value"))
+            columns_def.append(ColumnDef(name="value", type="number"))
+            # Add observation_date for context
+            select_columns.append(MetricObservation.observation_date.label("observation_date"))
+            columns_def.append(ColumnDef(name="observation_date", type="date"))
+        else:
+            agg_func = _get_agg_func(request.aggregation)
+            value_col = agg_func(cast(MetricObservation.value, Float)).label("value")
+            select_columns.append(value_col)
+            columns_def.append(ColumnDef(name="value", type="number"))
 
-        # Also add unit from the first metric
+        # Bug fix: add unit to GROUP BY so it doesn't cause SQL errors
         select_columns.append(MetricDefinition.unit.label("unit"))
+        group_by_columns.append(MetricDefinition.unit)
         columns_def.append(ColumnDef(name="unit", type="string"))
 
         # Build query with select columns
         query = base_query.with_entities(*select_columns)
 
         # Apply filters
-        # Filter by metric_ids
         query = query.filter(MetricObservation.metric_id.in_(request.metric_ids))
 
-        # Filter by entity_ids
         if request.filters.entity_ids:
             query = query.filter(MetricObservation.entity_id.in_(request.filters.entity_ids))
 
-        # Filter by fiscal year range
         if request.filters.fiscal_year_start:
             query = query.filter(
                 extract("year", MetricObservation.observation_date) >= request.filters.fiscal_year_start
@@ -105,25 +110,45 @@ async def explore_metrics(request: ExploreRequest, db: Session = Depends(get_db)
                 extract("year", MetricObservation.observation_date) <= request.filters.fiscal_year_end
             )
 
-        # Apply GROUP BY
-        if group_by_columns:
+        # Bug fix: apply dimension_filters (was ignored before)
+        if request.filters.dimension_filters:
+            for dim_name, allowed_values in request.filters.dimension_filters.items():
+                if not allowed_values:
+                    continue
+                dim_row = db.query(Dimension).filter(Dimension.dimension_name == dim_name).first()
+                if dim_row:
+                    query = query.filter(
+                        MetricObservation.observation_id.in_(
+                            db.query(ObservationDimension.observation_id).filter(
+                                and_(
+                                    ObservationDimension.dimension_id == dim_row.dimension_id,
+                                    ObservationDimension.dimension_value.in_(allowed_values),
+                                )
+                            )
+                        )
+                    )
+
+        # Apply GROUP BY (skip for aggregation "none")
+        if group_by_columns and not is_no_agg:
             query = query.group_by(*group_by_columns)
 
         # Apply sorting
-        if request.sort_by == "value":
-            if request.sort_order == "asc":
-                query = query.order_by(value_col.asc())
-            else:
-                query = query.order_by(value_col.desc())
+        if not is_no_agg and request.sort_by == "value":
+            value_col_ref = [c for c in select_columns if getattr(c, 'key', None) == 'value' or getattr(c, 'name', None) == 'value']
+            if value_col_ref:
+                if request.sort_order == "asc":
+                    query = query.order_by(value_col_ref[0].asc())
+                else:
+                    query = query.order_by(value_col_ref[0].desc())
 
-        # Get total count before limit
-        total_rows = query.count() if group_by_columns else query.count()
-
-        # Apply limit
+        # Apply limit and execute
         query = query.limit(request.limit)
-
-        # Execute and format rows
         results = query.all()
+
+        # Bug fix: count from actual results (query.count() is unreliable after GROUP BY)
+        total_rows = len(results)
+
+        # Format rows
         rows = []
         for row in results:
             row_dict = {}
@@ -131,9 +156,11 @@ async def explore_metrics(request: ExploreRequest, db: Session = Depends(get_db)
                 val = getattr(row, col_def.name, None)
                 if val is not None:
                     if col_def.type == "number":
-                        row_dict[col_def.name] = float(val) if val is not None else None
+                        row_dict[col_def.name] = float(val)
+                    elif col_def.type == "date":
+                        row_dict[col_def.name] = str(val)
                     else:
-                        row_dict[col_def.name] = str(val) if val is not None else None
+                        row_dict[col_def.name] = str(val)
                 else:
                     row_dict[col_def.name] = None
             rows.append(row_dict)

@@ -7,6 +7,8 @@ import { useAnalyticsStore } from "@/store/analytics";
 import { QueryBuilder, SaveReportDialog } from "@/components/analytics";
 import { ChartRenderer, ChartContainer } from "@/components/analytics/charts";
 import { AnalyticsTableView } from "@/components/analytics/charts";
+import { ValidationPanel } from "@/components/analytics/validation-panel";
+import { Chatbot } from "@/components/analytics/chatbot";
 import { cn } from "@/lib/utils";
 
 export default function AnalyticsPage() {
@@ -107,6 +109,9 @@ export default function AnalyticsPage() {
                 <> &middot; Aggregation: {store.result.metadata.aggregation === "none" ? "None (Raw Values)" : store.result.metadata.aggregation}</>
               )}
             </p>
+
+            {/* Cross-validation */}
+            <ValidationPanel />
           </div>
         )}
 
@@ -135,6 +140,7 @@ export default function AnalyticsPage() {
       </div>
 
       <SaveReportDialog open={saveOpen} onOpenChange={setSaveOpen} />
+      <Chatbot />
     </div>
   );
 }

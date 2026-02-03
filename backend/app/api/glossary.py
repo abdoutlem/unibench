@@ -13,15 +13,26 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Use database loader if available, otherwise fall back to YAML
-try:
-    glossary_loader = get_glossary_loader_db()
-    USE_DB_LOADER = True
-except Exception:
-    glossary_loader = get_glossary_loader()
-    USE_DB_LOADER = False
+# Lazy initialization – resolved on first request instead of at import time.
+# This avoids issues when the DB isn't ready during module loading.
+_glossary_loader = None
+_glossary_matcher = None
 
-glossary_matcher = GlossaryMatcher(glossary_loader)
+
+def _get_loader():
+    global _glossary_loader, _glossary_matcher
+    if _glossary_loader is None:
+        try:
+            _glossary_loader = get_glossary_loader_db()
+        except Exception:
+            _glossary_loader = get_glossary_loader()
+        _glossary_matcher = GlossaryMatcher(_glossary_loader)
+    return _glossary_loader
+
+
+def _get_matcher():
+    _get_loader()
+    return _glossary_matcher
 
 
 @router.get("/metrics", response_model=List[GlossaryMetric])
@@ -31,15 +42,16 @@ async def list_metrics(
 ):
     """List all glossary metrics, optionally filtered by domain or search query."""
     try:
-        glossary_loader.load_all()
-        
+        loader = _get_loader()
+        loader.load_all()
+
         if search:
-            metrics = glossary_loader.search_metrics(search, domain)
+            metrics = loader.search_metrics(search, domain)
         elif domain:
-            metrics = glossary_loader.get_metrics_by_domain(domain)
+            metrics = loader.get_metrics_by_domain(domain)
         else:
-            metrics = glossary_loader.get_all_metrics()
-        
+            metrics = loader.get_all_metrics()
+
         return metrics
     except Exception as e:
         logger.error(f"Error listing metrics: {e}", exc_info=True)
@@ -50,8 +62,9 @@ async def list_metrics(
 async def get_metric(metric_id: str):
     """Get a specific metric definition by ID."""
     try:
-        glossary_loader.load_all()
-        metric = glossary_loader.get_metric(metric_id)
+        loader = _get_loader()
+        loader.load_all()
+        metric = loader.get_metric(metric_id)
         if not metric:
             raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
         return metric
@@ -66,8 +79,9 @@ async def get_metric(metric_id: str):
 async def get_metrics_by_domain(domain: MetricDomain):
     """Get all metrics for a specific domain."""
     try:
-        glossary_loader.load_all()
-        metrics = glossary_loader.get_metrics_by_domain(domain)
+        loader = _get_loader()
+        loader.load_all()
+        metrics = loader.get_metrics_by_domain(domain)
         return metrics
     except Exception as e:
         logger.error(f"Error getting metrics for domain {domain}: {e}", exc_info=True)
@@ -82,8 +96,9 @@ async def match_text(
 ):
     """Match text to glossary entries and return potential metric matches."""
     try:
-        glossary_loader.load_all()
-        matches = glossary_matcher.match_text(text, domain=domain, limit=limit)
+        loader = _get_loader()
+        loader.load_all()
+        matches = _get_matcher().match_text(text, domain=domain, limit=limit)
         return matches
     except Exception as e:
         logger.error(f"Error matching text: {e}", exc_info=True)
@@ -94,8 +109,9 @@ async def match_text(
 async def get_variations(metric_id: str):
     """Get semantic variations for a specific metric."""
     try:
-        glossary_loader.load_all()
-        metric = glossary_loader.get_metric(metric_id)
+        loader = _get_loader()
+        loader.load_all()
+        metric = loader.get_metric(metric_id)
         if not metric:
             raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
         return metric.semantic_variations
@@ -110,19 +126,18 @@ async def get_variations(metric_id: str):
 async def create_metric(metric: GlossaryMetric = Body(...)):
     """Create or update a metric in the glossary."""
     try:
-        glossary_loader.load_all()
-        
-        # Save metric to YAML file
-        success = glossary_loader.save_metric(metric)
+        loader = _get_loader()
+        loader.load_all()
+
+        success = loader.save_metric(metric)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to save metric to glossary")
-        
-        # Reload glossary to include new metric
-        glossary_loader.reload()
-        glossary_matcher.reload()
-        
+
+        loader.reload()
+        _get_matcher().reload()
+
         logger.info(f"Metric created/updated: {metric.id} ({metric.canonical_name})")
-        
+
         return metric
     except HTTPException:
         raise
@@ -138,21 +153,22 @@ async def update_metric(metric_id: str, metric: GlossaryMetric = Body(...)):
         if metric_id != metric.id:
             raise HTTPException(status_code=400, detail="Metric ID in path must match metric ID in body")
         
-        glossary_loader.load_all()
-        
-        # Check if metric exists
-        existing = glossary_loader.get_metric(metric_id)
+        loader = _get_loader()
+        loader.load_all()
+
+        existing = loader.get_metric(metric_id)
         if not existing:
             raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
-        
-        # Save updated metric to YAML file
-        success = glossary_loader.save_metric(metric)
+
+        if not metric.created_at and existing.created_at:
+            metric.created_at = existing.created_at
+
+        success = loader.save_metric(metric)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update metric in glossary")
-        
-        # Reload glossary
-        glossary_loader.reload()
-        glossary_matcher.reload()
+
+        loader.reload()
+        _get_matcher().reload()
         
         logger.info(f"Metric updated: {metric_id} ({metric.canonical_name})")
         
@@ -168,20 +184,19 @@ async def update_metric(metric_id: str, metric: GlossaryMetric = Body(...)):
 async def delete_metric(metric_id: str):
     """Delete a metric from the glossary (marks as inactive)."""
     try:
-        glossary_loader.load_all()
-        metric = glossary_loader.get_metric(metric_id)
+        loader = _get_loader()
+        loader.load_all()
+        metric = loader.get_metric(metric_id)
         if not metric:
             raise HTTPException(status_code=404, detail=f"Metric '{metric_id}' not found")
-        
-        # Mark as inactive instead of deleting
+
         metric.is_active = False
-        success = glossary_loader.save_metric(metric)
+        success = loader.save_metric(metric)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update metric")
-        
-        # Reload glossary
-        glossary_loader.reload()
-        glossary_matcher.reload()
+
+        loader.reload()
+        _get_matcher().reload()
         
         logger.info(f"Metric deactivated: {metric_id}")
         
@@ -197,8 +212,9 @@ async def delete_metric(metric_id: str):
 async def list_dimensions():
     """List all available dimensions."""
     try:
-        glossary_loader.load_all()
-        dimensions = glossary_loader.get_all_dimensions()
+        loader = _get_loader()
+        loader.load_all()
+        dimensions = loader.get_all_dimensions()
         return dimensions
     except Exception as e:
         logger.error(f"Error listing dimensions: {e}", exc_info=True)
@@ -209,8 +225,9 @@ async def list_dimensions():
 async def get_dimension(dimension_id: str):
     """Get a specific dimension definition by ID."""
     try:
-        glossary_loader.load_all()
-        dimension = glossary_loader.get_dimension(dimension_id)
+        loader = _get_loader()
+        loader.load_all()
+        dimension = loader.get_dimension(dimension_id)
         if not dimension:
             raise HTTPException(status_code=404, detail=f"Dimension '{dimension_id}' not found")
         return dimension
@@ -228,20 +245,18 @@ async def update_dimension(dimension_id: str, dimension: DimensionDefinition = B
         if dimension_id != dimension.id:
             raise HTTPException(status_code=400, detail="Dimension ID in path must match dimension ID in body")
         
-        glossary_loader.load_all()
-        
-        # Check if dimension exists
-        existing = glossary_loader.get_dimension(dimension_id)
+        loader = _get_loader()
+        loader.load_all()
+
+        existing = loader.get_dimension(dimension_id)
         if not existing:
             raise HTTPException(status_code=404, detail=f"Dimension '{dimension_id}' not found")
-        
-        # Save updated dimension to YAML file
-        success = glossary_loader.save_dimension(dimension)
+
+        success = loader.save_dimension(dimension)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update dimension in glossary")
-        
-        # Reload glossary
-        glossary_loader.reload()
+
+        loader.reload()
         
         logger.info(f"Dimension updated: {dimension_id} ({dimension.name})")
         

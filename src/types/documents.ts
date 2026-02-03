@@ -78,6 +78,7 @@ export type DataSourceStatus =
   | "inactive"
   | "error"
   | "pending"
+  | "processing"
   | "paused";
 
 export interface DataSource {

@@ -33,14 +33,44 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db() -> None:
-    """Initialize database - create all tables."""
+    """Initialize database - create all tables and run migrations."""
     try:
         logger.info(f"Initializing database at {DB_PATH}")
         Base.metadata.create_all(bind=engine)
+        
+        # Run migrations to add new columns if they don't exist
+        _migrate_add_dimensions_entities()
+        
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {e}", exc_info=True)
         raise
+
+
+def _migrate_add_dimensions_entities() -> None:
+    """Migration: Add dimensions and entities columns to metric_definitions table if they don't exist."""
+    try:
+        from sqlalchemy import inspect, text
+        
+        inspector = inspect(engine)
+        columns = [col['name'] for col in inspector.get_columns('metric_definitions')]
+        
+        with engine.connect() as conn:
+            # Add dimensions column if it doesn't exist
+            if 'dimensions' not in columns:
+                logger.info("Adding 'dimensions' column to metric_definitions table")
+                conn.execute(text("ALTER TABLE metric_definitions ADD COLUMN dimensions TEXT"))
+                conn.commit()
+            
+            # Add entities column if it doesn't exist
+            if 'entities' not in columns:
+                logger.info("Adding 'entities' column to metric_definitions table")
+                conn.execute(text("ALTER TABLE metric_definitions ADD COLUMN entities TEXT"))
+                conn.commit()
+                
+    except Exception as e:
+        # Table might not exist yet, or column might already exist - that's okay
+        logger.debug(f"Migration check completed (this is normal if tables are new): {e}")
 
 
 def get_db() -> Generator[Session, None, None]:
